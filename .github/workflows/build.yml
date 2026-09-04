@@ -1,0 +1,432 @@
+name: Build FriendlyWrt
+
+# 通过 GitHub Actions 云端编译 FriendlyWrt 固件
+# 流水线参考 friendlyarm/Actions-FriendlyWrt（两段式：先编译 rootfs，再按 CPU 打包镜像）
+# 交互参考 wukongdaily/ImmortalWrt-ImageBuilder（网页点选参数、按需增删软件包）
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "选择 FriendlyWrt 版本"
+        required: true
+        default: "25.12"
+        type: choice
+        options:
+          - "25.12"
+          - "24.10"
+      cpu:
+        description: |
+          选择主控芯片（对应机型）：
+          rk3328 = NanoPi R2S / R2C
+          rk3528 = NanoPi R28S / Zero2 / NEO3-Plus
+          rk3399 = NanoPi R4S / R4SE / NanoPC-T4
+          rk3566 = NanoPi R3S
+          rk3568 = NanoPi R5S / R5C
+          rk3576 = NanoPi R76S / M5
+          rk3588 = NanoPi R6S / R6C / NanoPC-T6 / M6
+        required: true
+        default: "rk3399"
+        type: choice
+        options:
+          - "rk3328"
+          - "rk3528"
+          - "rk3399"
+          - "rk3566"
+          - "rk3568"
+          - "rk3576"
+          - "rk3588"
+          - "all"
+      include_docker:
+        description: "是否集成 Docker（会显著增加固件体积和编译时间）"
+        required: true
+        default: "no"
+        type: choice
+        options:
+          - "yes"
+          - "no"
+      add_packages:
+        description: "额外集成的软件包（空格分隔，如 luci-app-openclash luci-theme-argon）"
+        required: false
+        default: ""
+        type: string
+      remove_packages:
+        description: "要剔除的官方预装软件包（空格分隔，剔除后系统更纯净）"
+        required: false
+        default: ""
+        type: string
+      lan_ip:
+        description: "管理后台 IP（如 192.168.50.1，留空保持官方默认 192.168.2.1）"
+        required: false
+        default: ""
+        type: string
+  watch:
+    types: [started]
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: 准备构建参数 / 创建 Release
+    runs-on: ubuntu-22.04
+    if: github.event.repository.owner.id == github.event.sender.id
+    outputs:
+      version: ${{ steps.conf.outputs.version }}
+      suffix: ${{ steps.conf.outputs.suffix }}
+      sets: ${{ steps.conf.outputs.sets }}
+      cpus: ${{ steps.conf.outputs.cpus }}
+      release_tag: ${{ steps.conf.outputs.release_tag }}
+    steps:
+      - name: 计算构建参数并创建 Release
+        id: conf
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version || '25.12' }}"
+          CPU_IN="${{ inputs.cpu || 'rk3399' }}"
+          DOCKER="${{ inputs.include_docker || 'no' }}"
+
+          if [ "$CPU_IN" = "all" ]; then
+            CPUS='["rk3328","rk3528","rk3399","rk3566","rk3568","rk3576","rk3588"]'
+          else
+            CPUS="[\"${CPU_IN}\"]"
+          fi
+
+          if [ "$DOCKER" = "yes" ]; then
+            SETS='["docker"]'
+            SUFFIX="-docker"
+          else
+            SETS='["non-docker"]'
+            SUFFIX=""
+          fi
+
+          RELEASE_TAG="FriendlyWrt-${VERSION}-$(date +%Y%m%d)"
+
+          {
+            echo "version=${VERSION}"
+            echo "suffix=${SUFFIX}"
+            echo "sets=${SETS}"
+            echo "cpus=${CPUS}"
+            echo "release_tag=${RELEASE_TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+          # 若当天同版本重复构建则复用已有 Release，产物同名覆盖
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$RELEASE_TAG" \
+              --notes "FriendlyWrt ${VERSION}${SUFFIX} 自动构建于 $(date +%Y-%m-%d)"
+          fi
+
+  build_rootfs:
+    name: 编译 FriendlyWrt rootfs
+    needs: prepare
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        set: ${{ fromJSON(needs.prepare.outputs.sets) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialization environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo rm -rf /etc/apt/sources.list.d
+          wget https://raw.githubusercontent.com/friendlyarm/build-env-on-ubuntu-bionic/master/install.sh
+          sed -i -e 's/^apt-get -y install openjdk-8-jdk/# apt-get -y install openjdk-8-jdk/g' install.sh
+          sed -i -e 's/^\[ -d fa-toolchain \]/# [ -d fa-toolchain ]/g' install.sh
+          sed -i -e 's/^(cat fa-toolchain/# (cat fa-toolchain/g' install.sh
+          sed -i -e 's/^(tar xf fa-toolchain/# (tar xf fa-toolchain/g' install.sh
+          sudo -E bash ./install.sh
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'noreply@github.com'
+          git config --global color.ui false
+          git clone https://github.com/friendlyarm/repo
+          sudo -E cp repo/repo /usr/bin/
+          mkdir -p ./artifact
+          sudo swapoff -a || true
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk /usr/local/share/boost /opt/ghc 2>/dev/null || true
+          echo "cores: $(nproc)"
+
+      - name: Download source
+        run: |
+          mkdir project
+          cd project
+          # rootfs 与具体 CPU 无关，统一使用 rk3399 清单
+          repo init --depth=1 -u https://github.com/friendlyarm/friendlywrt_manifests -b master-v${{ needs.prepare.outputs.version }} \
+                  -m rk3399.xml --repo-url=https://github.com/friendlyarm/repo  --no-clone-bundle
+          repo sync -c friendlywrt --no-clone-bundle
+          repo sync -c configs --no-clone-bundle
+          repo sync -c device/common --no-clone-bundle
+          repo sync -c device/friendlyelec --no-clone-bundle
+          repo sync -c scripts --no-clone-bundle
+          repo sync -c scripts/sd-fuse  --no-clone-bundle
+          repo sync -c toolchain  --no-clone-bundle
+
+      - name: Prepare dot config
+        run: |
+          cd project
+          DIST_DIR=friendlywrt$(echo ${{ needs.prepare.outputs.version }} | awk -F . '{print $1}')${{ needs.prepare.outputs.suffix }}
+          CONFIG=rockchip${{ needs.prepare.outputs.suffix }}
+          cat > .current_config.mk <<EOL
+          . device/friendlyelec/rk3399/base.mk
+          TARGET_IMAGE_DIRNAME=${DIST_DIR}
+          TARGET_FRIENDLYWRT_CONFIG=${CONFIG}
+          EOL
+          # 提速：不生成 ImageBuilder / SDK / 工具链
+          sed -i -e '/CONFIG_MAKE_TOOLCHAIN=y/d' configs/rockchip*/01-nanopi
+          sed -i -e 's/CONFIG_IB=y/# CONFIG_IB is not set/g' configs/rockchip*/01-nanopi
+          sed -i -e 's/CONFIG_SDK=y/# CONFIG_SDK is not set/g' configs/rockchip*/01-nanopi
+          # DEBUG_DOT_CONFIG=1：只生成 friendlywrt/.config 后停下，供下一步自定义软件包
+          DEBUG_DOT_CONFIG=1 ./build.sh friendlywrt
+
+      - name: Apply package customizations
+        env:
+          ADD_PACKAGES: ${{ inputs.add_packages }}
+          REMOVE_PACKAGES: ${{ inputs.remove_packages }}
+        run: |
+          cd project
+          source ../scripts/custome_config.sh
+
+      - name: Apply custom settings (LAN IP)
+        env:
+          LAN_IP: ${{ inputs.lan_ip }}
+        run: |
+          cd project
+          if [ -n "$LAN_IP" ]; then
+            mkdir -p friendlywrt/files/etc/uci-defaults
+            cat > friendlywrt/files/etc/uci-defaults/zzz-custom-settings <<EOL
+          uci set network.lan.ipaddr='${LAN_IP}'
+          uci commit network
+          EOL
+            echo "[INFO] 管理后台 IP 将设置为: $LAN_IP"
+          fi
+
+      - name: Cache friendlywrt dl
+        uses: actions/cache@v4
+        with:
+          path: project/friendlywrt/dl
+          key: friendlywrt-dl-${{ needs.prepare.outputs.version }}-${{ matrix.set }}
+          restore-keys: friendlywrt-dl-${{ needs.prepare.outputs.version }}-
+
+      - name: Download package
+        run: |
+          cd project/friendlywrt
+          make download -j$(nproc)
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: Compile friendlyWrt
+        id: compile
+        continue-on-error: true
+        run: |
+          cd project/friendlywrt
+          if ! make -j$(nproc); then
+            echo "::warning::parallel build failed, retrying with V=s"
+            make -j1 V=s
+          fi
+
+      - name: Check the result and try again
+        if: steps.compile.outcome == 'failure'
+        run: |
+          cd project/friendlywrt
+          make -j1 V=s
+
+      - name: Create rootfs and host-pm packages
+        id: pkg
+        run: |
+          cd project
+          source .current_config.mk
+          SUFFIX="${{ needs.prepare.outputs.suffix }}"
+
+          rootfs_filename="rootfs-friendlywrt-${{ needs.prepare.outputs.version }}${SUFFIX}.tgz"
+          tar czf ../artifact/${rootfs_filename} ${FRIENDLYWRT_SRC}/${FRIENDLYWRT_ROOTFS} \
+                ${FRIENDLYWRT_SRC}/${FRIENDLYWRT_PACKAGE_DIR}
+
+          # 打包宿主机 apk/opkg，供下一阶段打包镜像时向 rootfs 安装各 CPU 的内核组件
+          PM_BIN=
+          [ -f ${FRIENDLYWRT_SRC}/staging_dir/host/bin/apk ]  && PM_BIN=${FRIENDLYWRT_SRC}/staging_dir/host/bin/apk
+          [ -f ${FRIENDLYWRT_SRC}/staging_dir/host/bin/opkg ] && PM_BIN=${FRIENDLYWRT_SRC}/staging_dir/host/bin/opkg
+          if [ -z "$PM_BIN" ]; then
+            echo "ERROR: neither apk nor opkg found under ${FRIENDLYWRT_SRC}/staging_dir/host/bin/"
+            exit 1
+          fi
+          host_pm_filename="host-pm-${{ needs.prepare.outputs.version }}.tgz"
+          tar czf ../artifact/${host_pm_filename} "$PM_BIN"
+
+          echo "rootfs_filename=${rootfs_filename}" >> $GITHUB_OUTPUT
+          echo "host_pm_filename=${host_pm_filename}" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fw-rootfs-${{ needs.prepare.outputs.version }}${{ needs.prepare.outputs.suffix }}
+          path: ./artifact/*
+          retention-days: 1
+          if-no-files-found: error
+
+  build_img:
+    name: 编译内核并打包镜像
+    needs: [prepare, build_rootfs]
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        cpu: ${{ fromJSON(needs.prepare.outputs.cpus) }}
+        set: ${{ fromJSON(needs.prepare.outputs.sets) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialization environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo rm -rf /etc/apt/sources.list.d
+          wget https://raw.githubusercontent.com/friendlyarm/build-env-on-ubuntu-bionic/master/install.sh
+          sed -i -e 's/^apt-get -y install openjdk-8-jdk/# apt-get -y install openjdk-8-jdk/g' install.sh
+          sed -i -e 's/^\[ -d fa-toolchain \]/# [ -d fa-toolchain ]/g' install.sh
+          sed -i -e 's/^(cat fa-toolchain/# (cat fa-toolchain/g' install.sh
+          sed -i -e 's/^(tar xf fa-toolchain/# (tar xf fa-toolchain/g' install.sh
+          sudo -E bash ./install.sh
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'noreply@github.com'
+          git config --global color.ui false
+          git clone https://github.com/friendlyarm/repo
+          sudo -E cp repo/repo /usr/bin/
+          mkdir -p ./artifact
+          sudo swapoff -a || true
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk /usr/local/share/boost /opt/ghc 2>/dev/null || true
+          echo "cores: $(nproc)"
+
+      - name: Download source
+        run: |
+          mkdir project
+          cd project
+          repo init --depth=1 -u https://github.com/friendlyarm/friendlywrt_manifests -b master-v${{ needs.prepare.outputs.version }} \
+                  -m ${{ matrix.cpu }}.xml --repo-url=https://github.com/friendlyarm/repo  --no-clone-bundle
+          repo sync -c kernel --no-clone-bundle
+          repo sync -c u-boot --no-clone-bundle
+          repo sync -c rkbin --no-clone-bundle
+          repo sync -c configs --no-clone-bundle
+          repo sync -c device/common --no-clone-bundle
+          repo sync -c device/friendlyelec --no-clone-bundle
+          repo sync -c scripts --no-clone-bundle
+          repo sync -c scripts/sd-fuse  --no-clone-bundle
+          repo sync -c toolchain  --no-clone-bundle
+
+      - name: Download rootfs built by previous stage
+        uses: actions/download-artifact@v4
+        with:
+          name: fw-rootfs-${{ needs.prepare.outputs.version }}${{ needs.prepare.outputs.suffix }}
+          path: .
+
+      - name: Prepare config
+        id: config
+        run: |
+          cd project
+          case ${{ matrix.cpu }} in
+          rk3328)
+            MODEL=R2S-R2C-Series
+            ;;
+          rk3528)
+            MODEL=R28S-Zero2-NEO3Plus-Series
+            ;;
+          rk3399)
+            MODEL=R4S-Series
+            ;;
+          rk3568)
+            MODEL=R5S-R5C-Series
+            ;;
+          rk3566)
+            MODEL=R3S-Series
+            ;;
+          rk3576)
+            MODEL=M5-R76S-Series
+            ;;
+          rk3588)
+            MODEL=T6-R6S-R6C-M6-Series
+            ;;
+          *)
+            echo "unknown cpu: ${{ matrix.cpu }}"
+            exit 1
+            ;;
+          esac
+          SUFFIX="${{ needs.prepare.outputs.suffix }}"
+          IMG_FILE=${MODEL}-FriendlyWrt-${{ needs.prepare.outputs.version }}${SUFFIX}.img
+          TGZ_FILE=images-${MODEL}-FriendlyWrt-${{ needs.prepare.outputs.version }}${SUFFIX}.tgz
+          DIST_DIR=friendlywrt$(echo ${{ needs.prepare.outputs.version }} | awk -F . '{print $1}')${SUFFIX}
+          CONFIG=rockchip${SUFFIX}
+          cat > .current_config.mk <<EOL
+          . device/friendlyelec/${{ matrix.cpu }}/base.mk
+          TARGET_IMAGE_DIRNAME=${DIST_DIR}
+          TARGET_FRIENDLYWRT_CONFIG=${CONFIG}
+          TARGET_SD_RAW_FILENAME=${IMG_FILE}
+          EOL
+
+          echo "img_filename=${IMG_FILE}" >> $GITHUB_OUTPUT
+          echo "archive_filename=${TGZ_FILE}" >> $GITHUB_OUTPUT
+          echo "dist_dir=${DIST_DIR}" >> $GITHUB_OUTPUT
+
+      - name: Unpack friendlywrt rootfs
+        run: |
+          cd project
+          tar xzf "../rootfs-friendlywrt-${{ needs.prepare.outputs.version }}${{ needs.prepare.outputs.suffix }}.tgz"
+
+      - name: Unpack host package-manager bundle
+        run: |
+          cd project
+          tar xzf "../host-pm-${{ needs.prepare.outputs.version }}.tgz"
+
+      - name: Apply kernel customizations
+        run: |
+          cd project
+          source ../scripts/custome_kernel_config.sh
+
+      - name: Compile uboot and kernel
+        run: |
+          cd project
+          ./build.sh uboot
+          ./build.sh kernel
+
+      - name: Build sd image
+        run: |
+          cd project
+          ./build.sh sd-img
+          mv out/${{ steps.config.outputs.img_filename }} ../artifact/
+
+          # 打包 images-XYZ.tgz（供 eMMC 刷机助手使用）
+          pushd scripts/sd-fuse/ > /dev/null
+          if [ ! -d "${{ steps.config.outputs.dist_dir }}" ]; then
+              echo "ERROR: image directory ${{ steps.config.outputs.dist_dir }} not found under scripts/sd-fuse/"
+              ls -la
+              exit 1
+          fi
+          archive_dir="${{ steps.config.outputs.dist_dir }}-${{ matrix.cpu }}"
+          mv "${{ steps.config.outputs.dist_dir }}" "${archive_dir}"
+          tar czf "${{ steps.config.outputs.archive_filename }}" "${archive_dir}"
+          mv ${{ steps.config.outputs.archive_filename }} ../../../artifact/
+          popd > /dev/null
+
+          cd ../artifact/
+          gzip *.img
+
+      - name: Upload XYZ.img.gz to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./artifact/${{ steps.config.outputs.img_filename }}.gz
+          asset_name: ${{ steps.config.outputs.img_filename }}.gz
+          tag: ${{ needs.prepare.outputs.release_tag }}
+          overwrite: true
+
+      - name: Upload images-XYZ.tgz to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./artifact/${{ steps.config.outputs.archive_filename }}
+          asset_name: ${{ steps.config.outputs.archive_filename }}
+          tag: ${{ needs.prepare.outputs.release_tag }}
+          overwrite: true
