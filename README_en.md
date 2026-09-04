@@ -37,26 +37,39 @@ Build [FriendlyWrt](https://github.com/friendlyarm/friendlywrt) firmware in the 
 | version | FriendlyWrt version (based on OpenWrt 25.12 / 24.10) | 25.12 |
 | cpu | SoC to build for; choose `all` to build all 7 at once | rk3399 |
 | include_docker | Include Docker (significantly increases image size and build time) | no |
+| Preinstalled plugin checkboxes | 16 checkboxes covering the common official preinstalled plugins; checking one removes the whole group (see below) | unchecked |
 | add_packages | Extra packages to include, space-separated | empty |
-| remove_packages | Official preinstalled packages to remove, space-separated | empty |
+| remove_packages | Advanced: extra package names to remove, space-separated | empty |
 | lan_ip | Admin UI IP address (leave empty to keep the official default `192.168.2.1`) | empty |
 
-## Officially Preinstalled Packages (removable)
+## Removing Preinstalled Plugins via Checkboxes
 
-The official FriendlyWrt firmware ships with quite a few packages. If you only use it as a main router, the following can all be removed (paste into `remove_packages`):
+On the **Run workflow** page you can directly check which officially preinstalled plugins to remove. **Each checkbox removes the whole group** (luci frontend + backend daemon + Chinese language pack):
 
-```text
-adblock luci-app-adblock aria2 aria2-openssl luci-app-aria2
-luci-app-minidlna luci-app-samba4 luci-app-smartdns luci-app-sqm
-luci-app-statistics luci-app-commands luci-app-watchcat luci-app-ddns
-luci-app-upnp luci-app-nlbwmon luci-app-hd-idle coremark
-bind-dig batctl-default smartmontools luci-app-diskman
-```
+| Checkbox | Packages removed |
+| --- | --- |
+| Adblock ad filtering | adblock / luci-app-adblock |
+| aria2 downloader | aria2 / luci-app-aria2 |
+| DLNA media server | minidlna / luci-app-minidlna |
+| Samba file sharing | samba4-server / luci-app-samba4 |
+| SmartDNS | smartdns / luci-app-smartdns |
+| SQM queueing (QoS) | sqm-scripts / luci-app-sqm |
+| Status statistics charts | luci-app-statistics / collectd |
+| Traffic statistics nlbwmon | nlbwmon / luci-app-nlbwmon |
+| Dynamic DNS | ddns-scripts / luci-app-ddns |
+| UPnP | miniupnpd / luci-app-upnp |
+| Web terminal ttyd | ttyd / luci-app-ttyd |
+| Scheduled reboot watchcat | watchcat / luci-app-watchcat |
+| Hard disk standby hd-idle | hd-idle / luci-app-hd-idle |
+| Disk manager + SMART | luci-app-diskman / smartmontools |
+| Miscellaneous tools | coremark / bind-dig / batctl / pciutils / luci-app-commands |
+| Extra themes (keep Argon) | material / bootstrap / openwrt-2020 |
 
 Notes:
 
-- Removing `luci-app-xxx` also automatically removes the matching Chinese language pack `luci-i18n-xxx-zh-cn`
-- If a package is still required by other components, removal won't take effect — the build log will show a `[WARN]`
+- The checkbox-to-package mapping is maintained in the `preset_group` function of [scripts/custome_config.sh](scripts/custome_config.sh); package names come from the official `configs/rockchip` fragments and apply to both 24.10 and 25.12
+- If a package is still required by other components, removal won't take effect — the build log will show a `[WARN]`; helper packages of a removed component (e.g. the collectd modules) disappear automatically via dependency resolution
+- For packages not covered by the checkboxes, use `remove_packages` to add them manually
 - To see everything the official firmware preinstalls, check the **luci app list** printed by `custome_config.sh` in the build log
 - Third-party plugins such as `luci-app-openclash` and `luci-app-ssr-plus` are not part of the official source and cannot be added via this repo (they need extra feeds/kernel support)
 

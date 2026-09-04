@@ -8,8 +8,8 @@
 # 环境变量（由 workflow 注入，也可本地手动 export 后直接跑）：
 #   ADD_PACKAGES     需要额外集成的软件包，空格分隔
 #                    例: "luci-app-openclash luci-theme-argon"
-#   REMOVE_PACKAGES  需要剔除的官方预装软件包，空格分隔
-#                    例: "adblock luci-app-adblock aria2 luci-app-aria2 coremark"
+#   REMOVE_PACKAGES  需要剔除的软件包，空格分隔（高级用法，作勾选项的补充）
+#   RM_*             workflow 页面的「勾选剔除」开关（true/false），见下方 preset_group
 #
 # 执行时机：必须在 `DEBUG_DOT_CONFIG=1 ./build.sh friendlywrt` 之后。
 # 该命令会根据 configs/rockchip* 配置片段生成 friendlywrt/.config 后停下，
@@ -37,7 +37,43 @@ normalize() {
 }
 
 ADD_LIST=$(normalize "${ADD_PACKAGES:-}")
-REMOVE_LIST=$(normalize "${REMOVE_PACKAGES:-}")
+
+# ---------- 勾选式剔除开关（RM_* 布尔变量）→ 官方预装软件包组 ----------
+# 每组包含: luci 前端界面 + 后端守护进程（中文语言包在下方循环中自动联动剔除）。
+# 包名取自 friendlyarm/friendlywrt_configs 的 configs/rockchip 配置片段，
+# 24.10 与 25.12 基本一致；个别包在某版本不存在时 sed 无命中，属安全空操作。
+preset_group() {
+  case "$1" in
+    adblock)      echo "adblock luci-app-adblock" ;;
+    aria2)        echo "aria2 aria2-openssl luci-app-aria2" ;;
+    minidlna)     echo "minidlna luci-app-minidlna" ;;
+    samba4)       echo "samba4-server samba4-libs luci-app-samba4" ;;
+    smartdns)     echo "smartdns luci-app-smartdns" ;;
+    sqm)          echo "sqm-scripts luci-app-sqm" ;;
+    statistics)   echo "luci-app-statistics collectd" ;;
+    nlbwmon)      echo "nlbwmon luci-app-nlbwmon" ;;
+    ddns)         echo "ddns-scripts ddns-scripts-services luci-app-ddns" ;;
+    upnp)         echo "miniupnpd luci-app-upnp" ;;
+    ttyd)         echo "ttyd luci-app-ttyd" ;;
+    watchcat)     echo "watchcat luci-app-watchcat" ;;
+    hd_idle)      echo "hd-idle luci-app-hd-idle" ;;
+    diskman)      echo "luci-app-diskman smartmontools" ;;
+    misc_tools)   echo "coremark bind-dig bind-libs batctl-default pciutils pciids luci-app-commands" ;;
+    extra_themes) echo "luci-theme-material luci-theme-bootstrap luci-theme-openwrt-2020" ;;
+  esac
+}
+
+PRESET_REMOVE=""
+for K in adblock aria2 minidlna samba4 smartdns sqm statistics nlbwmon \
+         ddns upnp ttyd watchcat hd_idle diskman misc_tools extra_themes; do
+  VAR="RM_${K^^}"
+  if [ "${!VAR:-}" = "true" ]; then
+    echo "==> 已勾选剔除: ${K}"
+    PRESET_REMOVE="${PRESET_REMOVE} $(preset_group "$K")"
+  fi
+done
+
+REMOVE_LIST=$(normalize "${REMOVE_PACKAGES:-} ${PRESET_REMOVE}")
 
 echo "==> 官方默认预装的 luci 应用（可作为剔除参考）:"
 grep -oE '^CONFIG_PACKAGE_(luci-app-[a-z0-9_-]+)=y' "$CFG" \

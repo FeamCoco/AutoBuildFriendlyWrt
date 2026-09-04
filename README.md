@@ -37,26 +37,39 @@
 | version | FriendlyWrt 版本（对应 OpenWrt 25.12 / 24.10） | 25.12 |
 | cpu | 主控芯片，选 `all` 可一次构建全部 7 种 | rk3399 |
 | include_docker | 是否集成 Docker（体积和编译时间都会明显增加） | no |
+| 预装插件勾选剔除 | 16 个勾选项，覆盖官方常用预装插件，勾选即整组剔除（见下文） | 不勾选 |
 | add_packages | 额外集成的软件包，空格分隔 | 空 |
-| remove_packages | 要剔除的官方预装软件包，空格分隔 | 空 |
+| remove_packages | 补充剔除（高级）：手动填写包名，一般无需使用 | 空 |
 | lan_ip | 管理后台 IP（留空保持官方默认 `192.168.2.1`） | 空 |
 
-## 官方默认预装软件（可按需剔除）
+## 官方预装插件勾选剔除
 
-FriendlyWrt 官方固件预装了不少软件，如果你只把它当主路由用，下面这些都可以剔除（复制到 `remove_packages` 即可）：
+Run workflow 页面可以直接勾选要剔除的官方预装插件，**勾选即整组剔除**（luci 前端界面 + 后端守护进程 + 中文语言包）：
 
-```text
-adblock luci-app-adblock aria2 aria2-openssl luci-app-aria2
-luci-app-minidlna luci-app-samba4 luci-app-smartdns luci-app-sqm
-luci-app-statistics luci-app-commands luci-app-watchcat luci-app-ddns
-luci-app-upnp luci-app-nlbwmon luci-app-hd-idle coremark
-bind-dig batctl-default smartmontools luci-app-diskman
-```
+| 勾选项 | 剔除的软件 |
+| --- | --- |
+| 广告过滤 adblock | adblock / luci-app-adblock |
+| 下载工具 aria2 | aria2 / luci-app-aria2 |
+| DLNA 媒体服务器 | minidlna / luci-app-minidlna |
+| Samba 文件共享 | samba4-server / luci-app-samba4 |
+| SmartDNS | smartdns / luci-app-smartdns |
+| SQM 智能队列 (QoS) | sqm-scripts / luci-app-sqm |
+| 状态统计图表 | luci-app-statistics / collectd |
+| 流量统计 nlbwmon | nlbwmon / luci-app-nlbwmon |
+| 动态域名 DDNS | ddns-scripts / luci-app-ddns |
+| UPnP | miniupnpd / luci-app-upnp |
+| 网页终端 ttyd | ttyd / luci-app-ttyd |
+| 定时重启 watchcat | watchcat / luci-app-watchcat |
+| 硬盘休眠 hd-idle | hd-idle / luci-app-hd-idle |
+| 磁盘管理 + SMART | luci-app-diskman / smartmontools |
+| 杂项工具 | coremark / bind-dig / batctl / pciutils / luci-app-commands |
+| 多余主题（保留 Argon） | material / bootstrap / openwrt-2020 |
 
 说明：
 
-- 剔除 `luci-app-xxx` 时会自动同步剔除对应的中文语言包 `luci-i18n-xxx-zh-cn`
-- 若某包仍被其它组件依赖，剔除不会生效，构建日志会有 `[WARN]` 提示
+- 勾选项与软件包的对应关系维护在 [scripts/custome_config.sh](scripts/custome_config.sh) 的 `preset_group` 函数中，包名取自官方 `configs/rockchip` 配置片段，24.10 与 25.12 通用
+- 若某包仍被其它组件依赖，剔除不会生效，构建日志会有 `[WARN]` 提示；被剔除组件的附属包（如 collectd 的各模块）会随依赖自动消失
+- 勾选项未覆盖的包，可通过 `remove_packages` 手动补充
 - 想知道官方到底预装了什么，可在构建日志里查看 `custome_config.sh` 打印的 **luci 应用清单**
 - `luci-app-openclash`、`luci-app-ssr-plus` 等第三方插件不在官方源码内，请勿通过本仓库添加（需要额外 feed/内核支持）
 
