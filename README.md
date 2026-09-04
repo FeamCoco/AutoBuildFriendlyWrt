@@ -1,5 +1,7 @@
 # AutoBuildFriendlyWrt
 
+简体中文 | [English](README_en.md)
+
 通过 GitHub Actions 云端编译 [FriendlyWrt](https://github.com/friendlyarm/friendlywrt) 固件：在网页上点选机型、版本，按需增删软件包，得到一个**更纯净**的 FriendlyWrt 系统。
 
 - 流水线基于 [friendlyarm/Actions-FriendlyWrt](https://github.com/friendlyarm/Actions-FriendlyWrt)（FriendlyElec 官方两段式编译方案：先编译 rootfs，再按 CPU 编译内核/uboot 并打包镜像）
