@@ -8,6 +8,8 @@ Build [FriendlyWrt](https://github.com/friendlyarm/friendlywrt) firmware in the 
 - UX inspired by [wukongdaily/ImmortalWrt-ImageBuilder](https://github.com/wukongdaily/ImmortalWrt-ImageBuilder): no code changes required, just fill in the form
 - Compared with official prebuilt firmware, you can freely **remove the many preinstalled packages**, **add plugins on demand**, **change the admin IP**, and more
 
+Three ways to trigger a build: **🌐 GitHub Pages web console (recommended, see below)** / 🛠️ manual run from the Actions page / ⭐ owner clicks Star.
+
 ## Supported Devices
 
 | SoC (CPU) | Representative boards | Image name |
@@ -20,14 +22,107 @@ Build [FriendlyWrt](https://github.com/friendlyarm/friendlywrt) firmware in the 
 | rk3576 | NanoPi R76S / M5 | M5-R76S-Series |
 | rk3588 | NanoPi R6S / R6C, NanoPC-T6 / M6 | T6-R6S-R6C-M6-Series |
 
-## Usage
+## 🌐 Option 1: Trigger via GitHub Pages Web Console (recommended)
+
+This repo ships a **purely static web console** hosted on GitHub Pages — no need to dig through the Actions page; pick options and click to build:
+
+**👉 [https://feamcoco.github.io/AutoBuildFriendlyWrt/](https://feamcoco.github.io/AutoBuildFriendlyWrt/)**
+
+Features:
+
+- Pick the SoC / version / Docker / admin IP
+- **Check off preinstalled plugins to remove** (whole groups; the list is read live from [scripts/package_groups.txt](scripts/package_groups.txt))
+- **Check off well-known plugins to add** (HomeProxy, ZeroTier, Tailscale, WireGuard, FRP, AdGuard Home, etc. — all available in the official source)
+- Trigger the build with one click, track progress automatically, then download the firmware from [Releases](https://github.com/FeamCoco/AutoBuildFriendlyWrt/releases)
+
+> 🔐 **Only the repository owner can trigger builds**: the web console requires a Personal Access Token with Actions write permission (which others don't have), and the workflow double-checks server-side that the triggerer is the repository owner — anyone else is rejected.
+> Want to build firmware for yourself? Follow the **Fork tutorial** below to set up your own build page — about 10 minutes, completely free for public repos.
+
+## 🔱 Fork Tutorial: Set Up Your Own Build Page
+
+The console in this repo can only be operated by the repository owner. To build firmware for yourself, fork this repo and enable a web console for your fork:
+
+### Step 1 · Fork this repository
+
+1. Click **Fork** in the top-right corner → **Create a new fork**; the repo is copied to your account
+2. Keep the repo **Public** (important: private repos consume Actions minutes and require a paid plan for Pages; public repos get both for free)
+
+### Step 2 · Enable Actions
+
+Forked repos don't run Actions by default:
+
+1. Open the **Actions** tab of your fork
+2. Click **I understand my workflows, go ahead and enable them**
+
+### Step 3 · Create a Personal Access Token (the "key" that triggers builds)
+
+The page triggers builds through the official GitHub API and needs a token. A **fine-grained token** is recommended for least privilege:
+
+1. GitHub avatar (top-right) → **Settings** → **Developer settings** at the bottom of the left sidebar
+2. **Personal access tokens → Fine-grained tokens** → **Generate new token**
+3. Fill in as follows:
+
+| Setting | Value |
+| --- | --- |
+| Token name | `friendlywrt-builder` (anything) |
+| Expiration | As you like (regenerate when it expires) |
+| Resource owner | **Your own username** |
+| Repository access | **Only select repositories** → pick your fork |
+| Permissions → Repository permissions → **Actions** | **Read and write** |
+
+4. Click **Generate token** and copy the token (starts with `github_pat_`, **shown only once** — keep it safe)
+
+> A classic token with the `repo` scope also works, but it grants far more access than needed — not recommended.
+
+### Step 4 · Enable GitHub Pages
+
+1. Open your fork's **Settings → Pages**
+2. Under **Build and deployment → Source**, choose **Deploy from a branch**
+3. Set **Branch** to `main` + the `/docs` folder, then click **Save**
+
+### Step 5 · Open your own build page
+
+Wait 1–3 minutes for deployment, then visit (URL pattern: `https://<your-username>.github.io/<repo-name>/`):
+
+```
+https://<your-username>.github.io/AutoBuildFriendlyWrt/
+```
+
+For example, if your username is `tom`: `https://tom.github.io/AutoBuildFriendlyWrt/`. The page auto-detects that it now belongs to **your** fork — no code changes needed.
+
+### Step 6 · Trigger a build
+
+1. Paste the token from Step 3 → click **校验并连接 / Connect**
+2. Pick the SoC / version, check the preinstalled plugins to **remove** and the plugins to **add** (the generated `packages` list is previewed live)
+3. Click **🚀 触发编译 / Trigger build** — the page then shows build progress automatically
+4. After about **4–6 hours**, download the firmware from your fork's **Releases**
+
+### FAQ
+
+| Problem | Cause & fix |
+| --- | --- |
+| Page shows 404 | Pages needs a few minutes after enabling; make sure Source is `main` + `/docs`; check the username / repo name in the URL |
+| "Token invalid" (401) | Token copied incompletely or expired — regenerate it |
+| "No permission" (403) | Token lacks **Actions: Read and write**; or the token doesn't belong to the repository owner (only the owner can trigger) |
+| No build run appears in Actions | Step 2 was missed — Actions isn't enabled yet |
+| Build log shows `[WARN] package xxx could not be enabled` | The checked plugin doesn't exist in the selected version's feeds; it's skipped automatically and the build is unaffected |
+| Can I add OpenClash / PassWall? | No. They aren't part of the official FriendlyWrt source (they need extra feeds); only official-feed plugins are supported |
+| How long / how much? | ~4–6 hours for one SoC, longer with `all`; Actions is free for public repos |
+
+### Token & Security Notes
+
+- The token is stored only in your browser's localStorage and is **sent only to the official GitHub API (api.github.com)**; the page is a static file hosted on `*.github.io` with no backend at all
+- A fine-grained token grants access to **one repo with Actions read/write only**, so even a leaked token has limited impact and can be revoked anytime in GitHub settings
+- The workflow double-checks server-side that the triggerer is the repository owner: even someone with a working token cannot trigger builds on your repo
+
+## 🛠️ Option 2: Trigger Manually from the Actions Page
 
 1. Go to **Actions** → select **Build FriendlyWrt** in the sidebar → **Run workflow**
 2. Fill in the parameters as needed (see the table below) and start the run
 3. Wait about **4 ~ 6 hours** (rootfs build takes ~4.5 hours; per-CPU image packing runs in parallel, ~1 hour; measured ~5.5 hours end-to-end for a single rk3399 build)
 4. Download the firmware from the **Releases** page
 
-> 💡 Clicking the repo's **Star** also triggers a build with default parameters (25.12 / rk3399 / no Docker).
+> 💡 The repository owner can also click the repo's **Star** to trigger a build with default parameters (25.12 / rk3399 / no Docker).
 > 💡 Keep the repository **Public**: private repos consume Actions minutes — a single-device build bills ~320+ minutes, and choosing `all` multiplies that.
 > 💡 The Release is created when the build starts; firmware files only appear in it once everything has finished building. If a build fails without producing any firmware, the empty Release is cleaned up automatically.
 
@@ -38,7 +133,7 @@ Build [FriendlyWrt](https://github.com/friendlyarm/friendlywrt) firmware in the 
 | version | FriendlyWrt version (based on OpenWrt 25.12 / 24.10) | 25.12 |
 | cpu | SoC to build for; choose `all` to build all 7 at once | rk3399 |
 | include_docker | Include Docker (significantly increases image size and build time) | no |
-| packages | Package add/remove list, e.g. `-adblock -samba4 +luci-theme-argon` (syntax below) | empty |
+| packages | Package add/remove list, e.g. `-adblock -samba4 +luci-theme-argon` (syntax below; auto-generated from the checkboxes when triggered via the web console, extendable in the raw list box) | empty |
 | lan_ip | Admin UI IP address (leave empty to keep the official default `192.168.2.1`) | empty |
 
 ## Package Add/Remove Syntax (packages parameter)
@@ -99,6 +194,7 @@ Each device gets two files in Releases:
 
 ## Advanced Customization
 
+- **Web console**: [docs/index.html](docs/index.html) — pure static page that triggers this workflow via the GitHub API; the "remove preinstalled" list is read live from `scripts/package_groups.txt`, so new group aliases need no page changes
 - **Package add/remove logic**: [scripts/custome_config.sh](scripts/custome_config.sh) — parses the `packages` list (`+`/`-` prefixes + group aliases), edits `friendlywrt/.config` and re-resolves dependencies with `make defconfig`
 - **Plugin group table**: [scripts/package_groups.txt](scripts/package_groups.txt) — add/remove group aliases or adjust the packages a group removes, all in one file
 - **Kernel parameters**: edit the `CONFIGS` array in [scripts/custome_kernel_config.sh](scripts/custome_kernel_config.sh) (runs during the image stage, before the kernel is compiled)
@@ -107,6 +203,8 @@ Each device gets two files in Releases:
 ## How the Workflow Works
 
 ```
+gate           Trigger check (repository owner only; anyone else is rejected)
+   │
 prepare        Compute parameters (version/CPU/Docker) and create the Release
    │
 build_rootfs   Fetch friendlywrt sources → generate .config → apply the

@@ -3,6 +3,11 @@ name: Build FriendlyWrt
 # 通过 GitHub Actions 云端编译 FriendlyWrt 固件
 # 流水线参考 friendlyarm/Actions-FriendlyWrt（两段式：先编译 rootfs，再按 CPU 打包镜像）
 # 交互参考 wukongdaily/ImmortalWrt-ImageBuilder（网页点选参数、按需增删软件包）
+#
+# 触发方式（均仅限仓库所有者，下方 gate job 会在服务端强制校验）：
+#   1. GitHub Pages 网页控制台（docs/index.html）：填 Token、点选插件后一键触发，部署与使用教程见 README
+#   2. Actions 页面手动 Run workflow
+#   3. 仓库所有者点击 Star
 on:
   workflow_dispatch:
     inputs:
@@ -64,10 +69,25 @@ permissions:
   contents: write
 
 jobs:
+  gate:
+    name: 触发权限校验（仅限仓库所有者）
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拒绝非所有者触发
+        env:
+          OWNER_ID: ${{ github.event.repository.owner.id }}
+          SENDER_ID: ${{ github.event.sender.id }}
+        run: |
+          if [ "$OWNER_ID" != "$SENDER_ID" ]; then
+            echo "::error::触发者不是仓库所有者，已拒绝编译。他人请 Fork 本仓库并在自己的仓库中触发（教程见 README）。"
+            exit 1
+          fi
+          echo "触发者校验通过：${{ github.actor }} 是仓库所有者"
+
   prepare:
     name: 准备构建参数 / 创建 Release
+    needs: gate
     runs-on: ubuntu-22.04
-    if: github.event.repository.owner.id == github.event.sender.id
     outputs:
       version: ${{ steps.conf.outputs.version }}
       suffix: ${{ steps.conf.outputs.suffix }}

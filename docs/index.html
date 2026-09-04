@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FriendlyWrt 云端编译控制台 · AutoBuildFriendlyWrt</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='86'%3E%F0%9F%9B%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<meta name="description" content="通过 GitHub Pages 网页点选参数、剔除官方预装插件、追加知名插件，一键触发 GitHub Actions 云端编译 FriendlyWrt 固件。仅仓库所有者可触发。">
+<style>
+:root{
+  --bg:#f6f8fa; --card:#ffffff; --ink:#1f2328; --muted:#656d76; --line:#d0d7de;
+  --brand:#0e7a4a; --brand-soft:rgba(14,122,74,.09); --accent:#0969da;
+  --warn-bg:#fff8c5; --warn-line:#d4a72c; --err:#cf222e; --ok:#1a7f37; --chip:#f9fafb;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117; --card:#161b22; --ink:#e6edf3; --muted:#8b949e; --line:#30363d;
+    --brand:#2ea043; --brand-soft:rgba(46,160,67,.14); --accent:#58a6ff;
+    --warn-bg:#272115; --warn-line:#9e6a03; --err:#f85149; --ok:#3fb950; --chip:#1c2129;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{background:var(--bg);border:1px solid var(--line);padding:1px 6px;border-radius:5px;font-size:12.5px}
+
+header{background:var(--card);border-bottom:1px solid var(--line)}
+.head-wrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:18px 16px}
+h1{margin:0;font-size:20px}
+.tagline{margin:2px 0 0;font-size:13px;color:var(--muted)}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+nav a{border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:13px;color:var(--ink);background:var(--bg)}
+nav a:hover{text-decoration:none;border-color:var(--brand);color:var(--brand)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin:18px 0}
+h2{margin:0 0 12px;font-size:17px}
+h2 small{color:var(--muted);font-weight:400;font-size:13px;margin-left:8px}
+h2 .mini{float:right}
+.hint{margin:8px 0;font-size:13.5px;color:var(--muted)}
+.warnline{margin:10px 0 0;font-size:13px;color:var(--muted)}
+.note{border-left:3px solid var(--brand);background:var(--brand-soft);border-radius:0 8px 8px 0;padding:8px 12px;font-size:13.5px;margin:10px 0}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 0}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.grow{flex:1 1 240px;min-width:220px}
+input[type=text],input[type=password],select,textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg);color:var(--ink);font:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);outline-offset:0;border-color:var(--brand)}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.check{display:inline-flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;
+  padding:7px 16px;font:inherit;font-size:14px;cursor:pointer;background:var(--bg);color:var(--ink)}
+.btn:hover{border-color:var(--brand)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+.btn.primary:hover{opacity:.9}
+.btn.ghost{background:transparent}
+.btn.mini{padding:3px 10px;font-size:12.5px}
+.btn.big{padding:10px 30px;font-size:16px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:8px;margin-top:10px}
+.chip{position:relative;display:block}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip span{display:block;border:1px solid var(--line);border-radius:10px;padding:8px 11px;cursor:pointer;background:var(--chip)}
+.chip span:hover{border-color:var(--brand)}
+.chip input:checked+span{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand);background:var(--brand-soft)}
+.chip b{display:block;font-size:13.5px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.chip i{font-style:normal;color:var(--ink);font-size:13px}
+.chip em{display:block;font-style:normal;color:var(--muted);font-size:11.5px;margin-top:3px;word-break:break-all;line-height:1.5}
+.cat h3{margin:14px 0 2px;font-size:13.5px;color:var(--muted);font-weight:600}
+.cat:first-child h3{margin-top:0}
+
+.preview{background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;
+  display:flex;gap:10px;align-items:flex-start;margin-top:6px}
+.preview .plabel{flex-shrink:0;font-size:12px;color:var(--muted);padding-top:2px}
+.preview code{flex:1;border:none;background:transparent;padding:0;font-size:13px;word-break:break-all}
+.status{margin-top:12px;font-size:14px}
+.status.ok{color:var(--ok)}
+.status.err{color:var(--err)}
+.status.warn{color:var(--warn-line)}
+.status .meta{color:var(--muted);font-size:13px}
+.banner{border:1px solid var(--warn-line);background:var(--warn-bg);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:14px}
+.hidden{display:none!important}
+.spin{display:inline-block;animation:rot 1s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+footer{color:var(--muted);font-size:12.5px;text-align:center;margin:34px 0 44px;line-height:2}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap head-wrap">
+    <div>
+      <h1>🛠️ FriendlyWrt 云端编译控制台</h1>
+      <p class="tagline">AutoBuildFriendlyWrt · 点选参数 → 勾选插件 → 一键触发 GitHub Actions</p>
+    </div>
+    <nav>
+      <a id="lnk-repo" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt" target="_blank" rel="noopener">GitHub 仓库</a>
+      <a id="lnk-fork" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/fork" target="_blank" rel="noopener">Fork</a>
+      <a id="lnk-actions" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/actions" target="_blank" rel="noopener">Actions</a>
+      <a id="lnk-releases" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/releases" target="_blank" rel="noopener">Releases</a>
+      <a id="lnk-doc" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/blob/main/README.md" target="_blank" rel="noopener">教程文档</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 1 连接 -->
+  <section class="card">
+    <h2>① 连接 GitHub <small>Connect</small></h2>
+    <p class="hint">
+      触发编译需要填写具有 <b>Actions: Read and write</b> 权限的
+      <a id="lnk-pat" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Personal Access Token</a>，
+      且<b>仅仓库所有者可触发</b>（工作流在服务端强制校验）。
+      其他人请 <a id="lnk-fork2" href="#" target="_blank" rel="noopener">Fork 本仓库</a>搭建自己的页面，教程见 <a id="lnk-doc2" href="#" target="_blank" rel="noopener">README</a>。
+    </p>
+    <div class="row">
+      <div class="field grow">
+        <label>仓库 / Repository（owner/name，Fork 后自动识别为你自己的仓库）</label>
+        <input type="text" id="inp-repo" placeholder="owner/repo" spellcheck="false">
+      </div>
+      <div class="field grow">
+        <label>Personal Access Token（只保存在你的浏览器本地）</label>
+        <input type="password" id="inp-token" placeholder="github_pat_… 或 ghp_…" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+    <div class="row">
+      <label class="check"><input type="checkbox" id="chk-save"> 在此浏览器记住 Token</label>
+      <button class="btn primary" id="btn-connect">校验并连接</button>
+      <button class="btn ghost" id="btn-forget">清除本地 Token</button>
+    </div>
+    <div id="conn-status" class="status"></div>
+    <div id="perm-banner" class="banner hidden"></div>
+  </section>
+
+  <!-- 2 参数 -->
+  <section class="card">
+    <h2>② 构建参数 <small>Build config</small></h2>
+    <div class="grid4">
+      <div class="field">
+        <label>FriendlyWrt 版本 / Version</label>
+        <select id="sel-version">
+          <option value="25.12" selected>25.12（基于 OpenWrt 25.12，推荐）</option>
+          <option value="24.10">24.10（基于 OpenWrt 24.10）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>主控芯片 / 机型 / SoC</label>
+        <select id="sel-cpu">
+          <option value="rk3399" selected>rk3399 · NanoPi R4S / R4SE / NanoPC-T4</option>
+          <option value="rk3328">rk3328 · NanoPi R2S / R2C</option>
+          <option value="rk3528">rk3528 · NanoPi R28S / Zero2 / NEO3-Plus</option>
+          <option value="rk3566">rk3566 · NanoPi R3S</option>
+          <option value="rk3568">rk3568 · NanoPi R5S / R5C</option>
+          <option value="rk3576">rk3576 · NanoPi R76S / M5</option>
+          <option value="rk3588">rk3588 · NanoPi R6S / R6C / NanoPC-T6 / M6</option>
+          <option value="all">all · 全部机型一次构建（耗时成倍增加）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>集成 Docker / Include Docker</label>
+        <select id="sel-docker">
+          <option value="no" selected>不集成（体积小、编译快）</option>
+          <option value="yes">集成 Docker（体积与耗时明显增加）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>管理后台 IP / Admin IP（留空 = 官方默认 192.168.2.1）</label>
+        <input type="text" id="inp-lanip" placeholder="如 192.168.50.1" spellcheck="false">
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 剔除预装 -->
+  <section class="card">
+    <h2>③ 剔除官方预装插件 <small>Remove preinstalled</small></h2>
+    <p class="hint">
+      勾选要<b>整组剔除</b>的官方预装插件（luci 前端 + 后端守护进程 + 中文语言包），
+      列表实时读取仓库中的 <code>scripts/package_groups.txt</code>，在该文件里新增组别名后本页会自动同步。
+    </p>
+    <div class="row" style="margin-top:6px">
+      <button class="btn mini ghost" id="btn-rm-all">全选（最纯净模式）</button>
+      <button class="btn mini ghost" id="btn-rm-none">清空选择</button>
+      <span class="hint" style="margin:0" id="rm-count"></span>
+    </div>
+    <div id="grid-remove" class="chips"></div>
+  </section>
+
+  <!-- 4 追加插件 -->
+  <section class="card">
+    <h2>④ 追加知名插件 <small>Add plugins</small></h2>
+    <p class="hint">精选 FriendlyWrt <b>官方源码内</b>的知名插件，勾选即集成进固件。若插件在所选版本的源中不存在，构建日志会提示 <code>[WARN]</code> 并跳过，不影响编译。</p>
+    <div id="grid-add"></div>
+    <p class="warnline">⚠️ OpenClash、PassWall、SSR-Plus 等第三方插件不在官方源码内，无法通过本页添加；更多官方源插件可在第 ⑤ 步自定义清单中直接填写包名。</p>
+  </section>
+
+  <!-- 5 自定义 -->
+  <section class="card">
+    <h2>⑤ 自定义清单（可选） <small>Raw packages</small></h2>
+    <p class="hint">
+      直接填写软件包增删清单，空格或逗号分隔，语法与工作流 <code>packages</code> 参数完全一致：
+      <code>-组别名</code> / <code>-包名</code> 剔除，<code>+包名</code> 追加（无前缀视为追加），可与上方勾选叠加。
+    </p>
+    <textarea id="inp-extra" rows="2" placeholder="例：-adblock +luci-theme-argon +wget-ssl" spellcheck="false"></textarea>
+  </section>
+
+  <!-- 6 触发 -->
+  <section class="card">
+    <h2>⑥ 触发编译 <small>Trigger build</small></h2>
+    <div class="preview">
+      <span class="plabel">packages 清单预览</span>
+      <code id="pkg-preview"></code>
+      <button class="btn mini ghost" id="btn-copy">复制</button>
+    </div>
+    <div class="row">
+      <button class="btn primary big" id="btn-trigger">🚀 触发编译</button>
+      <span class="hint" style="margin:0">公开仓库 Actions 免费；单机型约 4~6 小时，固件自动上传到 Releases</span>
+    </div>
+    <div id="trigger-result" class="status"></div>
+  </section>
+
+  <!-- 最新构建 -->
+  <section class="card hidden" id="card-latest">
+    <h2>最新构建 <small>Latest run</small>
+      <button class="btn mini ghost" id="btn-refresh">刷新状态</button>
+    </h2>
+    <div id="latest-body" class="status"><span class="meta">连接后显示最近一次构建状态。</span></div>
+  </section>
+
+  <footer>
+    <p>🔐 Token 仅保存在你的浏览器 localStorage 中，只用于调用 GitHub 官方 API（api.github.com）；本页面为纯静态站点，部署在 GitHub Pages 上，没有任何后端。</p>
+    <p>流水线参考 friendlyarm/Actions-FriendlyWrt · 交互参考 wukongdaily/ImmortalWrt-ImageBuilder · 页面源码 <a id="lnk-src" href="#" target="_blank" rel="noopener">docs/index.html</a></p>
+  </footer>
+
+</main>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= 常量与静态数据 ================= */
+
+const API = 'https://api.github.com';
+const WORKFLOW_FILE = 'build.yml';
+const DEFAULT_REPO = 'FeamCoco/AutoBuildFriendlyWrt';
+const LS_TOKEN = 'abfw.token';
+
+// scripts/package_groups.txt 的离线快照，仅在实时拉取失败（如断网/私有仓库）时兜底
+const FALLBACK_GROUPS = [
+  ['adblock',      '广告过滤',            'adblock luci-app-adblock'],
+  ['aria2',        '下载工具',            'aria2 aria2-openssl luci-app-aria2'],
+  ['minidlna',     'DLNA 媒体服务器',     'minidlna luci-app-minidlna'],
+  ['samba4',       'Samba 文件共享',      'samba4-server samba4-libs luci-app-samba4'],
+  ['smartdns',     'SmartDNS DNS 优化',   'smartdns luci-app-smartdns'],
+  ['sqm',          'SQM 智能队列 QoS',    'sqm-scripts luci-app-sqm'],
+  ['statistics',   '状态统计图表',        'luci-app-statistics collectd'],
+  ['nlbwmon',      '流量统计',            'nlbwmon luci-app-nlbwmon'],
+  ['ddns',         '动态域名 DDNS',       'ddns-scripts ddns-scripts-services luci-app-ddns'],
+  ['upnp',         'UPnP',                'miniupnpd luci-app-upnp'],
+  ['ttyd',         '网页终端',            'ttyd luci-app-ttyd'],
+  ['watchcat',     '定时重启',            'watchcat luci-app-watchcat'],
+  ['hd_idle',      '硬盘休眠',            'hd-idle luci-app-hd-idle'],
+  ['diskman',      '磁盘管理+SMART',      'luci-app-diskman smartmontools'],
+  ['misc_tools',   '杂项工具',            'coremark bind-dig bind-libs batctl-default pciutils pciids luci-app-commands'],
+  ['extra_themes', '多余主题(保留 Argon)','luci-theme-material luci-theme-bootstrap luci-theme-openwrt-2020'],
+];
+
+// 精选官方源内知名插件（勾选后按 +包名 追加）
+const POPULAR = [
+  { cat: '组网 VPN / VPN & Mesh', items: [
+    ['luci-app-zerotier',      'ZeroTier 异地组网'],
+    ['luci-app-tailscale',     'Tailscale 异地组网'],
+    ['luci-proto-wireguard',   'WireGuard VPN 协议支持'],
+  ]},
+  { cat: '代理与 DNS / Proxy & DNS', items: [
+    ['luci-app-homeproxy',     'HomeProxy（sing-box 内核）'],
+    ['luci-app-adguardhome',   'AdGuard Home 全屋去广告'],
+    ['luci-app-https-dns-proxy','DoH 加密 DNS'],
+    ['luci-app-banip',         'banIP 恶意流量拦截'],
+  ]},
+  { cat: '内网穿透 / Remote Access', items: [
+    ['luci-app-frpc',          'FRP 内网穿透客户端'],
+    ['luci-app-frps',          'FRP 内网穿透服务端'],
+  ]},
+  { cat: '实用工具 / Utilities', items: [
+    ['luci-app-wol',           '网络唤醒 WOL'],
+    ['luci-app-vnstat',        'vnstat 流量监控'],
+    ['luci-app-mwan3',         '多 WAN 负载均衡 / 故障切换'],
+    ['luci-app-ksmbd',         'KSMBD 轻量文件共享（Samba4 替代）'],
+    ['luci-app-p910nd',        'USB 打印服务器'],
+    ['luci-app-rclone',        'Rclone 网盘挂载'],
+    ['luci-app-travelmate',    'Travelmate WiFi 自动中继'],
+  ]},
+];
+
+/* ================= 状态 ================= */
+
+const state = {
+  token: '',
+  user: null,        // { login }
+  repoFull: '',      // 'owner/name'
+  repoInfo: null,    // { default_branch, owner:{login}, permissions:{push,admin,...} }
+  groups: null,      // [[key, desc, pkgs], ...]
+  removed: new Set(),
+  added: new Set(),
+  packages: '',
+  runTimer: null,
+  lastRun: null,
+};
+
+/* ================= 工具函数 ================= */
+
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function showMsg(sel, kind, html) {
+  const el = $(sel);
+  el.className = 'status' + (kind ? ' ' + kind : '');
+  el.innerHTML = html;
+}
+
+// 从 *.github.io/{repo}/… 自动识别 owner/repo，使 Fork 无需改动即可使用
+function detectRepo() {
+  try {
+    const host = location.hostname;
+    if (/\.github\.io$/i.test(host)) {
+      const owner = host.replace(/\.github\.io$/i, '');
+      const seg = location.pathname.split('/').filter(Boolean)[0];
+      if (owner && seg) return decodeURIComponent(owner) + '/' + seg;
+    }
+  } catch (e) { /* ignore */ }
+  return DEFAULT_REPO;
+}
+
+async function api(path, opts = {}) {
+  const headers = Object.assign({
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  }, opts.headers || {});
+  if (state.token) headers.Authorization = 'Bearer ' + state.token;
+  const resp = await fetch(API + path, Object.assign({}, opts, { headers }));
+  if (!resp.ok) {
+    let msg = '';
+    try { msg = (await resp.json()).message || ''; } catch (e) { /* ignore */ }
+    const err = new Error(msg || ('HTTP ' + resp.status));
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.status === 204 ? null : resp.json();
+}
+
+function isOwner() {
+  return !!(state.user && state.repoInfo &&
+    state.user.login.toLowerCase() === state.repoInfo.owner.login.toLowerCase());
+}
+function canPush() {
+  return !!(state.repoInfo && state.repoInfo.permissions && state.repoInfo.permissions.push);
+}
+function permLabel() {
+  const p = state.repoInfo && state.repoInfo.permissions;
+  if (!p) return '未知';
+  if (p.admin) return 'admin（所有者）';
+  if (p.maintain) return 'maintain';
+  if (p.push) return 'write（协作者）';
+  if (p.triage) return 'triage';
+  return 'read（无触发权限）';
+}
+
+/* ================= 渲染 ================= */
+
+function renderLinks() {
+  const r = state.repoFull;
+  const base = 'https://github.com/' + r;
+  $('#lnk-repo').href = base;
+  $('#lnk-fork').href = base + '/fork';
+  $('#lnk-fork2').href = base + '/fork';
+  $('#lnk-actions').href = base + '/actions';
+  $('#lnk-releases').href = base + '/releases';
+  $('#lnk-doc').href = base + '/blob/main/README.md';
+  $('#lnk-doc2').href = base + '/blob/main/README.md';
+  $('#lnk-src').href = base + '/blob/main/docs/index.html';
+}
+
+function renderRemove() {
+  const grid = $('#grid-remove');
+  grid.innerHTML = state.groups.map(([key, desc, pkgs]) => `
+    <label class="chip"><input type="checkbox" data-key="${esc(key)}">
+      <span title="剔除：${esc(pkgs)}"><b>-${esc(key)}</b><i>${esc(desc)}</i><em>${esc(pkgs)}</em></span>
+    </label>`).join('');
+  updateRmCount();
+}
+
+function renderAdd() {
+  $('#grid-add').innerHTML = POPULAR.map(g => `
+    <div class="cat"><h3>${esc(g.cat)}</h3>
+      <div class="chips">${g.items.map(([pkg, desc]) => `
+        <label class="chip"><input type="checkbox" data-pkg="${esc(pkg)}">
+          <span><b>+${esc(pkg)}</b><i>${esc(desc)}</i></span>
+        </label>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function updateRmCount() {
+  const n = state.removed.size;
+  $('#rm-count').textContent = n ? `已勾选 ${n} 组` : '未勾选任何剔除项';
+}
+
+function updatePreview() {
+  const parts = [];
+  state.removed.forEach(k => parts.push('-' + k));
+  state.added.forEach(p => parts.push('+' + p));
+  const extra = $('#inp-extra').value.trim();
+  if (extra) {
+    extra.replace(/[,，]/g, ' ').split(/\s+/).filter(Boolean).forEach(t => parts.push(t));
+  }
+  state.packages = parts.join(' ');
+  $('#pkg-preview').textContent = state.packages || '（空 —— 保留全部官方预装，不追加插件）';
+}
+
+function renderConn() {
+  if (!state.repoInfo) return;
+  const info = state.repoInfo;
+  let html;
+  if (state.user) {
+    html = `✅ 已连接 <b>@${esc(state.user.login)}</b> · 仓库 <b>${esc(state.repoFull)}</b>` +
+      ` · 默认分支 <code>${esc(info.default_branch)}</code> · 你的权限：<b>${permLabel()}</b>`;
+  } else {
+    html = `<span class="meta">已识别仓库 <b>${esc(state.repoFull)}</b> · 默认分支 <code>${esc(info.default_branch)}</code> · 未登录（填写 Token 后可触发编译）</span>`;
+  }
+  showMsg('#conn-status', '', html);
+
+  const banner = $('#perm-banner');
+  if (state.user && !canPush()) {
+    banner.classList.remove('hidden');
+    banner.innerHTML = `⛔ 账号 <b>@${esc(state.user.login)}</b> 对 <b>${esc(state.repoFull)}</b> 没有写入权限，无法触发编译。` +
+      ` 本仓库仅所有者 <b>@${esc(info.owner.login)}</b> 可触发 —— 请 <a href="${esc('https://github.com/' + state.repoFull + '/fork')}" target="_blank" rel="noopener">Fork 本仓库</a>，` +
+      `再按 README 教程开启你自己的页面（你对你 Fork 的仓库拥有全部权限）。`;
+  } else if (state.user && !isOwner()) {
+    banner.classList.remove('hidden');
+    banner.innerHTML = `⚠️ 你是协作者，但工作流仅允许<b>仓库所有者</b>触发，即使发起也会被服务端拒绝。`;
+  } else {
+    banner.classList.add('hidden');
+  }
+  $('#btn-trigger').disabled = !(state.token && isOwner());
+}
+
+function showRunCard(run) {
+  state.lastRun = run;
+  $('#card-latest').classList.remove('hidden');
+  const icon = run.status !== 'completed'
+    ? `<span class="spin">⏳</span> ${esc(run.status)}`
+    : (run.conclusion === 'success' ? '✅ 构建成功' : `❌ ${esc(run.conclusion)}`);
+  const created = run.created_at ? new Date(run.created_at).toLocaleString() : '';
+  $('#latest-body').innerHTML =
+    `<div>${icon} · <a href="${esc(run.html_url)}" target="_blank" rel="noopener">Run #${run.run_number} ${esc(run.display_title || '')}</a></div>` +
+    `<div class="meta">开始时间：${esc(created)} · 固件完成后见 <a href="${esc('https://github.com/' + state.repoFull + '/releases')}" target="_blank" rel="noopener">Releases</a></div>`;
+}
+
+/* ================= 数据加载 ================= */
+
+function parseGroups(txt) {
+  return txt.split(/\r?\n/).map(l => l.trim())
+    .filter(l => l && !l.startsWith('#'))
+    .map(l => l.split('|').map(s => s.trim()))
+    .filter(p => p.length >= 3 && p[0]);
+}
+
+async function loadGroups(defaultBranch) {
+  const url = `https://raw.githubusercontent.com/${state.repoFull}/${defaultBranch || 'main'}/scripts/package_groups.txt`;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const groups = parseGroups(await resp.text());
+    if (groups.length) state.groups = groups;
+  } catch (e) {
+    if (!state.groups) state.groups = FALLBACK_GROUPS; // 拉取失败时使用内置快照
+  }
+  renderRemove();
+}
+
+async function initRepo() {
+  state.repoFull = $('#inp-repo').value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/, '') || detectRepo();
+  $('#inp-repo').value = state.repoFull;
+  renderLinks();
+  state.groups = null;
+  state.removed.clear();
+  state.added.clear();
+  renderAdd();
+  updatePreview();
+  try {
+    state.repoInfo = await api(`/repos/${state.repoFull}`); // 公开仓库可匿名读取
+    await loadGroups(state.repoInfo.default_branch);
+    renderConn();
+  } catch (e) {
+    state.groups = state.groups || FALLBACK_GROUPS;
+    renderRemove();
+    showMsg('#conn-status', 'warn',
+      `⚠️ 无法读取仓库 ${esc(state.repoFull)}（${esc(e.message)}）。插件剔除列表使用内置快照；若是私有仓库，请填写 Token 后重试。`);
+  }
+}
+
+/* ================= 连接 / Token ================= */
+
+async function connect() {
+  const token = $('#inp-token').value.trim();
+  if (!token) {
+    showMsg('#conn-status', 'err', '❌ 请先填写 Token。生成步骤：GitHub 头像 → Settings → Developer settings → Fine-grained tokens，仅勾选你仓库的 <b>Actions: Read and write</b> 权限，详细教程见 README。');
+    return;
+  }
+  state.token = token;
+  if ($('#chk-save').checked) {
+    try { localStorage.setItem(LS_TOKEN, token); } catch (e) { /* ignore */ }
+  } else {
+    try { localStorage.removeItem(LS_TOKEN); } catch (e) { /* ignore */ }
+  }
+  showMsg('#conn-status', '', '<span class="spin">⏳</span> 正在校验 Token 与仓库权限…');
+  try {
+    state.user = await api('/user');
+    await initRepo(); // 以当前 Token 重新识别仓库并刷新权限展示
+    loadLatestRun();
+  } catch (e) {
+    state.user = null;
+    const hint = e.status === 401 ? 'Token 无效或已过期（401）' :
+                 e.status === 403 ? '权限不足（403）' :
+                 e.status === 404 ? '仓库不存在或 Token 无权访问（404）' : esc(e.message);
+    showMsg('#conn-status', 'err', `❌ 连接失败：${hint}。请检查 Token 是否具有 Actions: Read and write 权限、仓库是否填写正确。`);
+  }
+}
+
+function forget() {
+  state.token = '';
+  state.user = null;
+  $('#inp-token').value = '';
+  $('#chk-save').checked = false;
+  try { localStorage.removeItem(LS_TOKEN); } catch (e) { /* ignore */ }
+  $('#btn-trigger').disabled = true;
+  $('#perm-banner').classList.add('hidden');
+  showMsg('#conn-status', '', '<span class="meta">已清除本地 Token。</span>');
+}
+
+/* ================= 触发编译 ================= */
+
+async function trigger() {
+  if (!state.token || !isOwner()) {
+    showMsg('#trigger-result', 'warn', '⚠️ 请先在第 ① 步使用<b>仓库所有者</b>的 Token 完成连接。');
+    return;
+  }
+  const lanip = $('#inp-lanip').value.trim();
+  if (lanip && !/^\d{1,3}(\.\d{1,3}){3}$/.test(lanip)) {
+    showMsg('#trigger-result', 'err', '❌ 管理 IP 格式不正确，应为类似 192.168.50.1 的 IPv4 地址，或留空使用默认。');
+    return;
+  }
+  const inputs = {
+    version: $('#sel-version').value,
+    cpu: $('#sel-cpu').value,
+    include_docker: $('#sel-docker').value,
+    packages: state.packages,
+    lan_ip: lanip,
+  };
+  const btn = $('#btn-trigger');
+  btn.disabled = true;
+  btn.textContent = '⏳ 正在触发…';
+  showMsg('#trigger-result', '', '<span class="spin">⏳</span> 正在调用 GitHub API…');
+  try {
+    const resp = await fetch(`${API}/repos/${state.repoFull}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': 'Bearer ' + state.token,
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+      body: JSON.stringify({ ref: (state.repoInfo && state.repoInfo.default_branch) || 'main', inputs }),
+    });
+    if (resp.status === 204) {
+      showMsg('#trigger-result', 'ok', '✅ 触发成功！正在定位构建任务…');
+      const startedAt = Date.now();
+      const run = await waitForRun(startedAt);
+      if (run) {
+        showRunCard(run);
+        showMsg('#trigger-result', 'ok', '✅ 构建已开始，页面会自动刷新状态；也点击上方链接查看实时日志。');
+        startPolling(run);
+      } else {
+        showMsg('#trigger-result', 'ok', '✅ 触发成功！列表刷新稍有延迟，请到 Actions 页面查看进度。');
+      }
+    } else if (resp.status === 403) {
+      showMsg('#trigger-result', 'err', '⛔ 无权限触发（403）：只有<b>仓库所有者</b>可触发编译。他人请 Fork 本仓库使用自己的页面。');
+    } else if (resp.status === 404) {
+      showMsg('#trigger-result', 'err', `❌ 未找到仓库或工作流 ${esc(WORKFLOW_FILE)}（404），请检查仓库名与 Actions 是否已启用。`);
+    } else if (resp.status === 422) {
+      let msg = '';
+      try { msg = (await resp.json()).message || ''; } catch (e) { /* ignore */ }
+      showMsg('#trigger-result', 'err', `❌ 参数被拒绝（422）：${esc(msg || 'inputs 与工作流定义不匹配')}`);
+    } else {
+      let msg = '';
+      try { msg = (await resp.json()).message || ''; } catch (e) { /* ignore */ }
+      showMsg('#trigger-result', 'err', `❌ 触发失败（HTTP ${resp.status}）：${esc(msg)}`);
+    }
+  } catch (e) {
+    showMsg('#trigger-result', 'err', `❌ 网络错误：${esc(e.message)}（请检查网络或代理后重试）`);
+  } finally {
+    btn.disabled = !isOwner();
+    btn.textContent = '🚀 触发编译';
+  }
+}
+
+async function waitForRun(startedAt) {
+  for (let i = 0; i < 12; i++) {
+    await sleep(5000);
+    try {
+      const data = await api(`/repos/${state.repoFull}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=10`);
+      const run = (data.workflow_runs || []).find(r =>
+        r.event === 'workflow_dispatch' && Date.parse(r.created_at) >= startedAt - 30000);
+      if (run) return run;
+    } catch (e) { /* 忽略单次轮询失败 */ }
+  }
+  return null;
+}
+
+function startPolling(run) {
+  clearInterval(state.runTimer);
+  const tick = async () => {
+    try {
+      const r = await api(`/repos/${state.repoFull}/actions/runs/${run.id}`);
+      showRunCard(r);
+      if (r.status === 'completed') {
+        clearInterval(state.runTimer);
+        state.runTimer = null;
+      }
+    } catch (e) { /* 忽略单次轮询失败 */ }
+  };
+  tick();
+  state.runTimer = setInterval(tick, 15000);
+}
+
+async function loadLatestRun() {
+  if (!state.token) return;
+  $('#card-latest').classList.remove('hidden');
+  $('#latest-body').innerHTML = '<span class="spin">⏳</span> 查询中…';
+  try {
+    const data = await api(`/repos/${state.repoFull}/actions/runs?per_page=1`);
+    const run = data.workflow_runs && data.workflow_runs[0];
+    if (run) { showRunCard(run); if (run.status !== 'completed') startPolling(run); }
+    else $('#latest-body').innerHTML = '<span class="meta">本仓库还没有任何构建记录。</span>';
+  } catch (e) {
+    $('#latest-body').innerHTML = `<span class="meta">查询失败：${esc(e.message)}</span>`;
+  }
+}
+
+/* ================= 事件绑定与初始化 ================= */
+
+function bind() {
+  $('#btn-connect').addEventListener('click', connect);
+  $('#btn-forget').addEventListener('click', forget);
+  $('#btn-trigger').addEventListener('click', trigger);
+  $('#btn-rm-all').addEventListener('click', () => {
+    state.removed = new Set(state.groups.map(g => g[0]));
+    document.querySelectorAll('#grid-remove input').forEach(i => { i.checked = true; });
+    updateRmCount(); updatePreview();
+  });
+  $('#btn-rm-none').addEventListener('click', () => {
+    state.removed.clear();
+    document.querySelectorAll('#grid-remove input').forEach(i => { i.checked = false; });
+    updateRmCount(); updatePreview();
+  });
+  $('#btn-copy').addEventListener('click', async () => {
+    const txt = state.packages || '';
+    try {
+      await navigator.clipboard.writeText(txt);
+      $('#btn-copy').textContent = '已复制';
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      $('#btn-copy').textContent = '已复制';
+    }
+    setTimeout(() => { $('#btn-copy').textContent = '复制'; }, 1500);
+  });
+  $('#btn-refresh').addEventListener('click', () => {
+    if (state.lastRun) {
+      api(`/repos/${state.repoFull}/actions/runs/${state.lastRun.id}`)
+        .then(showRunCard).catch(() => {});
+    } else {
+      loadLatestRun();
+    }
+  });
+  $('#grid-remove').addEventListener('change', e => {
+    const key = e.target.getAttribute && e.target.getAttribute('data-key');
+    if (!key) return;
+    if (e.target.checked) state.removed.add(key); else state.removed.delete(key);
+    updateRmCount(); updatePreview();
+  });
+  $('#grid-add').addEventListener('change', e => {
+    const pkg = e.target.getAttribute && e.target.getAttribute('data-pkg');
+    if (!pkg) return;
+    if (e.target.checked) state.added.add(pkg); else state.added.delete(pkg);
+    updatePreview();
+  });
+  $('#inp-extra').addEventListener('input', updatePreview);
+  $('#inp-repo').addEventListener('change', () => {
+    clearInterval(state.runTimer); state.runTimer = null;
+    state.user = null; state.repoInfo = null; state.token = $('#inp-token').value.trim();
+    $('#card-latest').classList.add('hidden');
+    initRepo();
+  });
+  $('#inp-token').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+}
+
+async function init() {
+  bind();
+  $('#inp-repo').value = detectRepo();
+  renderLinks();
+  renderAdd();
+  updatePreview();
+  let saved = '';
+  try { saved = localStorage.getItem(LS_TOKEN) || ''; } catch (e) { /* ignore */ }
+  if (saved) {
+    $('#inp-token').value = saved;
+    $('#chk-save').checked = true;
+    state.token = saved;
+  }
+  await initRepo();
+  if (saved) await connect();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
