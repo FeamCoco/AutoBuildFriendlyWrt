@@ -24,11 +24,12 @@ Build [FriendlyWrt](https://github.com/friendlyarm/friendlywrt) firmware in the 
 
 1. Go to **Actions** → select **Build FriendlyWrt** in the sidebar → **Run workflow**
 2. Fill in the parameters as needed (see the table below) and start the run
-3. Wait about **2.5 ~ 4 hours** (rootfs build takes ~2.5 hours; per-CPU image packing runs in parallel, ~1 hour)
+3. Wait about **4 ~ 6 hours** (rootfs build takes ~4.5 hours; per-CPU image packing runs in parallel, ~1 hour; measured ~5.5 hours end-to-end for a single rk3399 build)
 4. Download the firmware from the **Releases** page
 
 > 💡 Clicking the repo's **Star** also triggers a build with default parameters (25.12 / rk3399 / no Docker).
-> 💡 Keep the repository **Public**: private repos consume Actions minutes, and a full build takes 400+ minutes.
+> 💡 Keep the repository **Public**: private repos consume Actions minutes — a single-device build bills ~320+ minutes, and choosing `all` multiplies that.
+> 💡 The Release is created when the build starts; firmware files only appear in it once everything has finished building. If a build fails without producing any firmware, the empty Release is cleaned up automatically.
 
 ## Build Parameters
 
@@ -113,6 +114,8 @@ build_rootfs   Fetch friendlywrt sources → generate .config → apply the
    │
 build_img      Per CPU: fetch kernel/uboot sources → download the rootfs
                artifact → build kernel & uboot → pack SD/eMMC images → upload to Release
+   │
+cleanup        If the build fails or is cancelled and the Release has no assets, delete the empty Release
 ```
 
 The rootfs is compiled only once (it is CPU-independent) and per-CPU images are packed in parallel, which saves a lot of time. Intermediate artifacts are passed via `actions/artifact` (kept for 1 day) so the Release stays clean.

@@ -109,10 +109,12 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
           # 若当天同版本重复构建则复用已有 Release，产物同名覆盖
+          # 注意：Release 此刻先行创建（供 build_img 上传产物），镜像文件要等全部编译打包完成后才会出现
           if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
               --title "$RELEASE_TAG" \
-              --notes "FriendlyWrt ${VERSION}${SUFFIX} 自动构建于 $(date +%Y-%m-%d)"
+              --notes "FriendlyWrt ${VERSION}${SUFFIX} 自动构建于 $(date +%Y-%m-%d)
+          固件镜像将在全部编译打包完成后上传到本 Release；若构建失败且未产生任何固件，该 Release 会被自动清理。"
           fi
 
   build_rootfs:
@@ -427,3 +429,27 @@ jobs:
           asset_name: ${{ steps.config.outputs.archive_filename }}
           tag: ${{ needs.prepare.outputs.release_tag }}
           overwrite: true
+
+  cleanup_empty_release:
+    name: 失败时清理空 Release
+    needs: [prepare, build_rootfs, build_img]
+    if: (failure() || cancelled()) && needs.prepare.outputs.release_tag != ''
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 若 Release 无任何产物则删除
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} 不存在，无需清理"
+            exit 0
+          fi
+          # 只删没有产物的空 Release：部分机型失败时，成功机型的产物必须保留
+          ASSETS=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets | length')
+          if [ "$ASSETS" -eq 0 ]; then
+            echo "==> Release ${RELEASE_TAG} 无任何产物，删除 Release 及其 tag"
+            gh release delete "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+          else
+            echo "==> Release ${RELEASE_TAG} 已有 ${ASSETS} 个产物，保留"
+          fi

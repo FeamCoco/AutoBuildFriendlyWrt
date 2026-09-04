@@ -24,11 +24,12 @@
 
 1. 进入本仓库的 **Actions** → 左侧选择 **Build FriendlyWrt** → **Run workflow**
 2. 按需填写参数（见下表），点击运行
-3. 等待约 **2.5 ~ 4 小时**（rootfs 编译约 2.5 小时，各 CPU 镜像打包并行约 1 小时）
+3. 等待约 **4 ~ 6 小时**（rootfs 编译约 4.5 小时，各 CPU 镜像打包并行约 1 小时；实测 rk3399 单机型全程约 5.5 小时）
 4. 到 **Releases** 页面下载固件
 
 > 💡 也可以直接点一下仓库的 **Star** 触发构建（使用默认参数：25.12 / rk3399 / 不带 Docker）。
-> 💡 建议仓库保持 **Public**：私有仓库会消耗 Actions 分钟数配额，一次构建约需 400+ 分钟。
+> 💡 建议仓库保持 **Public**：私有仓库会消耗 Actions 分钟数配额，单机型一次构建计费约 320+ 分钟，选 `all` 会成倍增加。
+> 💡 Release 在构建开始时就会创建，固件文件要等全部编译打包完成后才会出现在里面；若构建失败且未产生任何固件，该空 Release 会被自动清理。
 
 ## 构建参数说明
 
@@ -113,6 +114,8 @@ build_rootfs   拉取 friendlywrt 源码 → 生成 .config → 按 packages 清
    │
 build_img      按 CPU 拉取内核/uboot 源码 → 下载 rootfs 产物
                → 编译内核与 uboot → 打包 SD/eMMC 镜像 → 上传到 Release
+   │
+cleanup        构建失败/取消且 Release 无任何产物时，自动删除空 Release
 ```
 
 rootfs 只编译一次（与 CPU 无关），各 CPU 镜像并行打包，节省大量时间；中间产物使用 `actions/artifact` 传递（保留 1 天），不污染 Release。
