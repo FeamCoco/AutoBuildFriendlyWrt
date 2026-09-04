@@ -44,95 +44,11 @@ on:
         options:
           - "yes"
           - "no"
-      # ========== 以下为官方预装插件勾选剔除（勾选即剔除，含前端+后端+中文语言包） ==========
-      rm_adblock:
-        description: "剔除广告过滤 adblock（adblock / luci-app-adblock）"
-        required: false
-        default: false
-        type: boolean
-      rm_aria2:
-        description: "剔除下载工具 aria2（aria2 / luci-app-aria2）"
-        required: false
-        default: false
-        type: boolean
-      rm_minidlna:
-        description: "剔除 DLNA 媒体服务器（minidlna / luci-app-minidlna）"
-        required: false
-        default: false
-        type: boolean
-      rm_samba4:
-        description: "剔除 Samba 文件共享（samba4-server / luci-app-samba4）"
-        required: false
-        default: false
-        type: boolean
-      rm_smartdns:
-        description: "剔除 SmartDNS DNS 优化（smartdns / luci-app-smartdns）"
-        required: false
-        default: false
-        type: boolean
-      rm_sqm:
-        description: "剔除 SQM 智能队列 QoS（sqm-scripts / luci-app-sqm）"
-        required: false
-        default: false
-        type: boolean
-      rm_statistics:
-        description: "剔除状态统计图表（luci-app-statistics / collectd）"
-        required: false
-        default: false
-        type: boolean
-      rm_nlbwmon:
-        description: "剔除流量统计 nlbwmon（nlbwmon / luci-app-nlbwmon）"
-        required: false
-        default: false
-        type: boolean
-      rm_ddns:
-        description: "剔除动态域名 DDNS（ddns-scripts / luci-app-ddns）"
-        required: false
-        default: false
-        type: boolean
-      rm_upnp:
-        description: "剔除 UPnP（miniupnpd / luci-app-upnp）"
-        required: false
-        default: false
-        type: boolean
-      rm_ttyd:
-        description: "剔除网页终端 ttyd（ttyd / luci-app-ttyd）"
-        required: false
-        default: false
-        type: boolean
-      rm_watchcat:
-        description: "剔除定时重启 watchcat（watchcat / luci-app-watchcat）"
-        required: false
-        default: false
-        type: boolean
-      rm_hd_idle:
-        description: "剔除硬盘休眠 hd-idle（hd-idle / luci-app-hd-idle）"
-        required: false
-        default: false
-        type: boolean
-      rm_diskman:
-        description: "剔除磁盘管理+SMART 监控（luci-app-diskman / smartmontools）"
-        required: false
-        default: false
-        type: boolean
-      rm_misc_tools:
-        description: "剔除杂项工具（coremark / bind-dig / batctl / pciutils / luci-app-commands）"
-        required: false
-        default: false
-        type: boolean
-      rm_extra_themes:
-        description: "剔除多余主题，保留 Argon（material / bootstrap / openwrt-2020）"
-        required: false
-        default: false
-        type: boolean
-      # ========== 勾选剔除选项结束 ==========
-      add_packages:
-        description: "额外集成的软件包（空格分隔，如 luci-app-openclash luci-theme-argon）"
-        required: false
-        default: ""
-        type: string
-      remove_packages:
-        description: "补充剔除（高级）：手动填写包名，空格分隔。常规插件直接勾选上方选项即可"
+      packages:
+        description: |
+          软件包增删清单（空格或逗号分隔），示例: -adblock -samba4 +luci-theme-argon
+          「-组别名」剔除官方预装插件组: adblock aria2 minidlna samba4 smartdns sqm statistics nlbwmon ddns upnp ttyd watchcat hd_idle diskman misc_tools extra_themes
+          「-包名」剔除单个包（luci-app-xxx 自动联动剔除中文语言包）；「+包名」追加包（无前缀视为追加）
         required: false
         default: ""
         type: string
@@ -266,24 +182,7 @@ jobs:
 
       - name: Apply package customizations
         env:
-          ADD_PACKAGES: ${{ inputs.add_packages }}
-          REMOVE_PACKAGES: ${{ inputs.remove_packages }}
-          RM_ADBLOCK: ${{ inputs.rm_adblock }}
-          RM_ARIA2: ${{ inputs.rm_aria2 }}
-          RM_MINIDLNA: ${{ inputs.rm_minidlna }}
-          RM_SAMBA4: ${{ inputs.rm_samba4 }}
-          RM_SMARTDNS: ${{ inputs.rm_smartdns }}
-          RM_SQM: ${{ inputs.rm_sqm }}
-          RM_STATISTICS: ${{ inputs.rm_statistics }}
-          RM_NLBWMON: ${{ inputs.rm_nlbwmon }}
-          RM_DDNS: ${{ inputs.rm_ddns }}
-          RM_UPNP: ${{ inputs.rm_upnp }}
-          RM_TTYD: ${{ inputs.rm_ttyd }}
-          RM_WATCHCAT: ${{ inputs.rm_watchcat }}
-          RM_HD_IDLE: ${{ inputs.rm_hd_idle }}
-          RM_DISKMAN: ${{ inputs.rm_diskman }}
-          RM_MISC_TOOLS: ${{ inputs.rm_misc_tools }}
-          RM_EXTRA_THEMES: ${{ inputs.rm_extra_themes }}
+          PACKAGES: ${{ inputs.packages }}
         run: |
           cd project
           source ../scripts/custome_config.sh

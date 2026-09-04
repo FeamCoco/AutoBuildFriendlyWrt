@@ -37,40 +37,48 @@ Build [FriendlyWrt](https://github.com/friendlyarm/friendlywrt) firmware in the 
 | version | FriendlyWrt version (based on OpenWrt 25.12 / 24.10) | 25.12 |
 | cpu | SoC to build for; choose `all` to build all 7 at once | rk3399 |
 | include_docker | Include Docker (significantly increases image size and build time) | no |
-| Preinstalled plugin checkboxes | 16 checkboxes covering the common official preinstalled plugins; checking one removes the whole group (see below) | unchecked |
-| add_packages | Extra packages to include, space-separated | empty |
-| remove_packages | Advanced: extra package names to remove, space-separated | empty |
+| packages | Package add/remove list, e.g. `-adblock -samba4 +luci-theme-argon` (syntax below) | empty |
 | lan_ip | Admin UI IP address (leave empty to keep the official default `192.168.2.1`) | empty |
 
-## Removing Preinstalled Plugins via Checkboxes
+## Package Add/Remove Syntax (packages parameter)
 
-On the **Run workflow** page you can directly check which officially preinstalled plugins to remove. **Each checkbox removes the whole group** (luci frontend + backend daemon + Chinese language pack):
+The `packages` parameter manages both removal and inclusion of packages, separated by spaces or commas and parsed per token:
 
-| Checkbox | Packages removed |
+| Syntax | Meaning |
 | --- | --- |
-| Adblock ad filtering | adblock / luci-app-adblock |
-| aria2 downloader | aria2 / luci-app-aria2 |
-| DLNA media server | minidlna / luci-app-minidlna |
-| Samba file sharing | samba4-server / luci-app-samba4 |
-| SmartDNS | smartdns / luci-app-smartdns |
-| SQM queueing (QoS) | sqm-scripts / luci-app-sqm |
-| Status statistics charts | luci-app-statistics / collectd |
-| Traffic statistics nlbwmon | nlbwmon / luci-app-nlbwmon |
-| Dynamic DNS | ddns-scripts / luci-app-ddns |
-| UPnP | miniupnpd / luci-app-upnp |
-| Web terminal ttyd | ttyd / luci-app-ttyd |
-| Scheduled reboot watchcat | watchcat / luci-app-watchcat |
-| Hard disk standby hd-idle | hd-idle / luci-app-hd-idle |
-| Disk manager + SMART | luci-app-diskman / smartmontools |
-| Miscellaneous tools | coremark / bind-dig / batctl / pciutils / luci-app-commands |
-| Extra themes (keep Argon) | material / bootstrap / openwrt-2020 |
+| `-group` | Remove a **whole group** of official preinstalled plugins (luci frontend + backend daemon + Chinese language pack, see table below) |
+| `-package` | Remove a single package; `luci-app-xxx` also removes the Chinese language pack `luci-i18n-xxx-zh-cn` |
+| `+package` | Add a package (no prefix = add) |
+
+Example: `-adblock -samba4 -extra_themes +luci-theme-argon` removes ad filtering, Samba and extra themes while making sure the Argon theme is enabled. If the same package appears with both `-` and `+`, the last one wins.
+
+### Available group aliases
+
+| Group | Packages removed |
+| --- | --- |
+| `adblock` | Ad filtering (adblock / luci-app-adblock) |
+| `aria2` | Downloader (aria2 / luci-app-aria2) |
+| `minidlna` | DLNA media server (minidlna / luci-app-minidlna) |
+| `samba4` | Samba file sharing (samba4-server / luci-app-samba4) |
+| `smartdns` | SmartDNS (smartdns / luci-app-smartdns) |
+| `sqm` | SQM queueing QoS (sqm-scripts / luci-app-sqm) |
+| `statistics` | Status charts (luci-app-statistics / collectd) |
+| `nlbwmon` | Traffic stats (nlbwmon / luci-app-nlbwmon) |
+| `ddns` | Dynamic DNS (ddns-scripts / luci-app-ddns) |
+| `upnp` | UPnP (miniupnpd / luci-app-upnp) |
+| `ttyd` | Web terminal (ttyd / luci-app-ttyd) |
+| `watchcat` | Scheduled reboot (watchcat / luci-app-watchcat) |
+| `hd_idle` | Disk standby (hd-idle / luci-app-hd-idle) |
+| `diskman` | Disk manager + SMART (luci-app-diskman / smartmontools) |
+| `misc_tools` | Misc tools (coremark / bind-dig / batctl / pciutils / luci-app-commands) |
+| `extra_themes` | Extra themes, keeps Argon (material / bootstrap / openwrt-2020) |
 
 Notes:
 
-- The checkbox-to-package mapping is maintained in the `preset_group` function of [scripts/custome_config.sh](scripts/custome_config.sh); package names come from the official `configs/rockchip` fragments and apply to both 24.10 and 25.12
+- The group-to-package mapping is maintained in [scripts/package_groups.txt](scripts/package_groups.txt) (single source of truth; package names come from the official `configs/rockchip` fragments and apply to both 24.10 and 25.12). Adjust groups or add new ones by editing that file
+- Packages not covered by any group can be removed directly via `-package`
 - If a package is still required by other components, removal won't take effect — the build log will show a `[WARN]`; helper packages of a removed component (e.g. the collectd modules) disappear automatically via dependency resolution
-- For packages not covered by the checkboxes, use `remove_packages` to add them manually
-- To see everything the official firmware preinstalls, check the **luci app list** printed by `custome_config.sh` in the build log
+- To see everything the official firmware preinstalls, check the **luci app list** and **group alias list** printed by `custome_config.sh` in the build log
 - Third-party plugins such as `luci-app-openclash` and `luci-app-ssr-plus` are not part of the official source and cannot be added via this repo (they need extra feeds/kernel support)
 
 ## Default System Info
@@ -90,7 +98,8 @@ Each device gets two files in Releases:
 
 ## Advanced Customization
 
-- **Package add/remove logic**: [scripts/custome_config.sh](scripts/custome_config.sh) — edits `friendlywrt/.config` and re-resolves dependencies with `make defconfig`
+- **Package add/remove logic**: [scripts/custome_config.sh](scripts/custome_config.sh) — parses the `packages` list (`+`/`-` prefixes + group aliases), edits `friendlywrt/.config` and re-resolves dependencies with `make defconfig`
+- **Plugin group table**: [scripts/package_groups.txt](scripts/package_groups.txt) — add/remove group aliases or adjust the packages a group removes, all in one file
 - **Kernel parameters**: edit the `CONFIGS` array in [scripts/custome_kernel_config.sh](scripts/custome_kernel_config.sh) (runs during the image stage, before the kernel is compiled)
 - **Change parameter defaults**: edit the `default` values of `workflow_dispatch.inputs` in [.github/workflows/build.yml](.github/workflows/build.yml)
 
@@ -99,8 +108,8 @@ Each device gets two files in Releases:
 ```
 prepare        Compute parameters (version/CPU/Docker) and create the Release
    │
-build_rootfs   Fetch friendlywrt sources → generate .config → add/remove
-               packages per inputs → make the rootfs → upload artifact
+build_rootfs   Fetch friendlywrt sources → generate .config → apply the
+               packages list → make the rootfs → upload artifact
    │
 build_img      Per CPU: fetch kernel/uboot sources → download the rootfs
                artifact → build kernel & uboot → pack SD/eMMC images → upload to Release

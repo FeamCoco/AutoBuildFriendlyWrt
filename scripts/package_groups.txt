@@ -1,0 +1,23 @@
+# FriendlyWrt 官方预装插件分组表（scripts/custome_config.sh 读取）
+#
+# 格式: 组别名|中文描述|包列表(空格分隔)，# 开头为注释行
+# 用途: packages 参数中「-组别名」整组剔除该行软件；
+#       本文件是唯一数据源，调整分组或新增组别名直接编辑即可。
+# 包名取自 friendlyarm/friendlywrt_configs 的 configs/rockchip 配置片段，
+# 24.10 与 25.12 基本一致；个别包在某版本不存在时剔除为安全空操作。
+adblock|广告过滤|adblock luci-app-adblock
+aria2|下载工具|aria2 aria2-openssl luci-app-aria2
+minidlna|DLNA 媒体服务器|minidlna luci-app-minidlna
+samba4|Samba 文件共享|samba4-server samba4-libs luci-app-samba4
+smartdns|SmartDNS DNS 优化|smartdns luci-app-smartdns
+sqm|SQM 智能队列 QoS|sqm-scripts luci-app-sqm
+statistics|状态统计图表|luci-app-statistics collectd
+nlbwmon|流量统计|nlbwmon luci-app-nlbwmon
+ddns|动态域名 DDNS|ddns-scripts ddns-scripts-services luci-app-ddns
+upnp|UPnP|miniupnpd luci-app-upnp
+ttyd|网页终端|ttyd luci-app-ttyd
+watchcat|定时重启|watchcat luci-app-watchcat
+hd_idle|硬盘休眠|hd-idle luci-app-hd-idle
+diskman|磁盘管理+SMART|luci-app-diskman smartmontools
+misc_tools|杂项工具|coremark bind-dig bind-libs batctl-default pciutils pciids luci-app-commands
+extra_themes|多余主题(保留 Argon)|luci-theme-material luci-theme-bootstrap luci-theme-openwrt-2020

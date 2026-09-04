@@ -6,10 +6,12 @@
 #   cd project && source ../scripts/custome_config.sh
 #
 # 环境变量（由 workflow 注入，也可本地手动 export 后直接跑）：
-#   ADD_PACKAGES     需要额外集成的软件包，空格分隔
-#                    例: "luci-app-openclash luci-theme-argon"
-#   REMOVE_PACKAGES  需要剔除的软件包，空格分隔（高级用法，作勾选项的补充）
-#   RM_*             workflow 页面的「勾选剔除」开关（true/false），见下方 preset_group
+#   PACKAGES  软件包增删清单，空格/逗号分隔，逐项按前缀解析：
+#     -组别名        整组剔除官方预装插件，组别名定义见 package_groups.txt
+#                    （如 -adblock -samba4 -extra_themes）
+#     -luci-app-xxx  剔除单个软件包（自动联动剔除中文语言包 luci-i18n-xxx-zh-cn）
+#     +luci-app-yyy  追加软件包（无前缀视为追加）
+#     同一包名先后出现在 + 与 - 中时，后写的生效
 #
 # 执行时机：必须在 `DEBUG_DOT_CONFIG=1 ./build.sh friendlywrt` 之后。
 # 该命令会根据 configs/rockchip* 配置片段生成 friendlywrt/.config 后停下，
@@ -25,64 +27,90 @@ set -eu
 
 FW_DIR=friendlywrt
 CFG=$FW_DIR/.config
+GROUPS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/package_groups.txt"
 
 if [ ! -f "$CFG" ]; then
   echo "[ERROR] 未找到 $CFG"
   echo "        请先在 project 目录执行: DEBUG_DOT_CONFIG=1 ./build.sh friendlywrt"
   exit 1
 fi
+if [ ! -f "$GROUPS_FILE" ]; then
+  echo "[ERROR] 未找到插件分组表 $GROUPS_FILE"
+  exit 1
+fi
+
+# ---------- 组别名查找 ----------
+group_lookup() { # $1=组别名；命中时输出包列表并返回 0
+  while IFS='|' read -r KEY DESC PKGS; do
+    case "$KEY" in ''|\#*) continue ;; esac
+    if [ "$KEY" = "$1" ]; then
+      echo "$PKGS"
+      return 0
+    fi
+  done < <(tr -d '\r' < "$GROUPS_FILE")
+  return 1
+}
+
+# ---------- 解析 PACKAGES 清单 ----------
+list_remove() { # 从 $1 列表中移除包名 $2
+  printf '%s\n' "$1" | tr '[:space:]' '\n' | sed '/^$/d' | grep -vx -- "$2" || true
+}
+
+ADD_LIST=""
+REMOVE_LIST=""
+TOKENS=$(printf '%s\n' "${PACKAGES:-}" | tr ',' ' ' | tr '[:space:]' '\n' | sed '/^$/d')
+
+while read -r TOK; do
+  OP="+"
+  NAME="$TOK"
+  case "$TOK" in
+    +*) NAME="${TOK#+}" ;;
+    -*) OP="-"; NAME="${TOK#-}" ;;
+  esac
+  [ -n "$NAME" ] || continue
+
+  if PKGS=$(group_lookup "$NAME"); then
+    echo "==> 展开组别名: ${NAME} → ${PKGS}"
+  else
+    PKGS="$NAME"
+    # 剔除项既不是组别名也不在当前配置中，多半是拼写错误
+    if [ "$OP" = "-" ] && ! grep -qE "^(# )?CONFIG_PACKAGE_${NAME}(=| is not set)" "$CFG"; then
+      echo "[WARN] 「-${NAME}」不是组别名，也不在当前配置中，请检查拼写"
+    fi
+  fi
+
+  for P in $PKGS; do
+    if [ "$OP" = "+" ]; then
+      ADD_LIST="$(list_remove "$ADD_LIST" "$P") $P"
+      REMOVE_LIST="$(list_remove "$REMOVE_LIST" "$P")"
+    else
+      REMOVE_LIST="$(list_remove "$REMOVE_LIST" "$P") $P"
+      ADD_LIST="$(list_remove "$ADD_LIST" "$P")"
+    fi
+  done
+done <<< "$TOKENS"
 
 normalize() {
   echo "$1" | tr '[:space:]' '\n' | sed '/^$/d' | sort -u
 }
-
-ADD_LIST=$(normalize "${ADD_PACKAGES:-}")
-
-# ---------- 勾选式剔除开关（RM_* 布尔变量）→ 官方预装软件包组 ----------
-# 每组包含: luci 前端界面 + 后端守护进程（中文语言包在下方循环中自动联动剔除）。
-# 包名取自 friendlyarm/friendlywrt_configs 的 configs/rockchip 配置片段，
-# 24.10 与 25.12 基本一致；个别包在某版本不存在时 sed 无命中，属安全空操作。
-preset_group() {
-  case "$1" in
-    adblock)      echo "adblock luci-app-adblock" ;;
-    aria2)        echo "aria2 aria2-openssl luci-app-aria2" ;;
-    minidlna)     echo "minidlna luci-app-minidlna" ;;
-    samba4)       echo "samba4-server samba4-libs luci-app-samba4" ;;
-    smartdns)     echo "smartdns luci-app-smartdns" ;;
-    sqm)          echo "sqm-scripts luci-app-sqm" ;;
-    statistics)   echo "luci-app-statistics collectd" ;;
-    nlbwmon)      echo "nlbwmon luci-app-nlbwmon" ;;
-    ddns)         echo "ddns-scripts ddns-scripts-services luci-app-ddns" ;;
-    upnp)         echo "miniupnpd luci-app-upnp" ;;
-    ttyd)         echo "ttyd luci-app-ttyd" ;;
-    watchcat)     echo "watchcat luci-app-watchcat" ;;
-    hd_idle)      echo "hd-idle luci-app-hd-idle" ;;
-    diskman)      echo "luci-app-diskman smartmontools" ;;
-    misc_tools)   echo "coremark bind-dig bind-libs batctl-default pciutils pciids luci-app-commands" ;;
-    extra_themes) echo "luci-theme-material luci-theme-bootstrap luci-theme-openwrt-2020" ;;
-  esac
-}
-
-PRESET_REMOVE=""
-for K in adblock aria2 minidlna samba4 smartdns sqm statistics nlbwmon \
-         ddns upnp ttyd watchcat hd_idle diskman misc_tools extra_themes; do
-  VAR="RM_${K^^}"
-  if [ "${!VAR:-}" = "true" ]; then
-    echo "==> 已勾选剔除: ${K}"
-    PRESET_REMOVE="${PRESET_REMOVE} $(preset_group "$K")"
-  fi
-done
-
-REMOVE_LIST=$(normalize "${REMOVE_PACKAGES:-} ${PRESET_REMOVE}")
+ADD_LIST=$(normalize "$ADD_LIST")
+REMOVE_LIST=$(normalize "$REMOVE_LIST")
 
 echo "==> 官方默认预装的 luci 应用（可作为剔除参考）:"
 grep -oE '^CONFIG_PACKAGE_(luci-app-[a-z0-9_-]+)=y' "$CFG" \
   | sed 's/^CONFIG_PACKAGE_//; s/=y$//' | sort || true
 echo ""
 
+echo "==> 可用组别名（packages 参数中「-组别名」整组剔除）:"
+while IFS='|' read -r KEY DESC PKGS; do
+  case "$KEY" in ''|\#*) continue ;; esac
+  printf '    %-14s %s\n' "$KEY" "$DESC"
+done < <(tr -d '\r' < "$GROUPS_FILE")
+echo ""
+
 # ---------- 剔除软件包 ----------
 if [ -n "$REMOVE_LIST" ]; then
-  echo "==> 将剔除以下预装软件包:"
+  echo "==> 将剔除以下软件包:"
   echo "$REMOVE_LIST"
   for P in $REMOVE_LIST; do
     # 主包（=y 或 =m 一并处理）
@@ -94,7 +122,7 @@ if [ -n "$REMOVE_LIST" ]; then
     fi
   done
 else
-  echo "==> 未指定 REMOVE_PACKAGES，保留全部官方预装软件"
+  echo "==> 未指定任何剔除项，保留全部官方预装软件"
 fi
 
 # ---------- 追加软件包 ----------
@@ -111,7 +139,7 @@ if [ -n "$ADD_LIST" ]; then
     fi
   done
 else
-  echo "==> 未指定 ADD_PACKAGES，不额外集成软件"
+  echo "==> 未指定追加项，不额外集成软件"
 fi
 
 # ---------- 重新求解依赖 ----------
