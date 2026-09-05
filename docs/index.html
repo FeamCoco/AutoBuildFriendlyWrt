@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FriendlyWrt 云端编译控制台 · AutoBuildFriendlyWrt</title>
+<title data-en="FriendlyWrt Cloud Build Console · AutoBuildFriendlyWrt">FriendlyWrt 云端编译控制台 · AutoBuildFriendlyWrt</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='86'%3E%F0%9F%9B%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
 <meta name="description" content="通过 GitHub Pages 网页点选参数、剔除官方预装插件、追加知名插件，一键触发 GitHub Actions 云端编译 FriendlyWrt 固件。仅仓库所有者可触发。">
 <style>
@@ -31,9 +31,12 @@ header{background:var(--card);border-bottom:1px solid var(--line)}
 .head-wrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:18px 16px}
 h1{margin:0;font-size:20px}
 .tagline{margin:2px 0 0;font-size:13px;color:var(--muted)}
-nav{display:flex;gap:8px;flex-wrap:wrap}
+nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 nav a{border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:13px;color:var(--ink);background:var(--bg)}
 nav a:hover{text-decoration:none;border-color:var(--brand);color:var(--brand)}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.lang button{border:none;background:transparent;color:var(--ink);padding:5px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+.lang button.active{background:var(--brand);color:#fff}
 
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin:18px 0}
 h2{margin:0 0 12px;font-size:17px}
@@ -96,15 +99,18 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin:34px 0 44px;
 <header>
   <div class="wrap head-wrap">
     <div>
-      <h1>🛠️ FriendlyWrt 云端编译控制台</h1>
-      <p class="tagline">AutoBuildFriendlyWrt · 点选参数 → 勾选插件 → 一键触发 GitHub Actions</p>
+      <h1 data-en="🛠️ FriendlyWrt Cloud Build Console">🛠️ FriendlyWrt 云端编译控制台</h1>
+      <p class="tagline" data-en="AutoBuildFriendlyWrt · Pick options → check plugins → trigger GitHub Actions in one click">AutoBuildFriendlyWrt · 点选参数 → 勾选插件 → 一键触发 GitHub Actions</p>
     </div>
     <nav>
-      <a id="lnk-repo" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt" target="_blank" rel="noopener">GitHub 仓库</a>
+      <div class="lang" role="group" aria-label="language">
+        <button type="button" data-setlang="zh" class="active">中文</button><button type="button" data-setlang="en">English</button>
+      </div>
+      <a id="lnk-repo" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt" target="_blank" rel="noopener" data-en="Repo">GitHub 仓库</a>
       <a id="lnk-fork" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/fork" target="_blank" rel="noopener">Fork</a>
       <a id="lnk-actions" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/actions" target="_blank" rel="noopener">Actions</a>
       <a id="lnk-releases" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/releases" target="_blank" rel="noopener">Releases</a>
-      <a id="lnk-doc" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/blob/main/README.md" target="_blank" rel="noopener">教程文档</a>
+      <a id="lnk-doc" href="https://github.com/FeamCoco/AutoBuildFriendlyWrt/blob/main/README.md" target="_blank" rel="noopener" data-en="Docs">教程文档</a>
     </nav>
   </div>
 </header>
@@ -113,8 +119,8 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin:34px 0 44px;
 
   <!-- 1 连接 -->
   <section class="card">
-    <h2>① 连接 GitHub <small>Connect</small></h2>
-    <p class="hint">
+    <h2 data-en="① Connect to GitHub">① 连接 GitHub <small>Connect</small></h2>
+    <p class="hint" data-en="Triggering a build requires a <a href='https://github.com/settings/personal-access-tokens/new' target='_blank' rel='noopener'>Personal Access Token</a> with <b>Actions: Read and write</b> permission, and <b>only the repository owner can trigger</b> (enforced server-side by the workflow). Everyone else: please <a id='lnk-fork2'>fork this repo</a> and set up your own page — see the <a id='lnk-doc2'>README</a> tutorial.">
       触发编译需要填写具有 <b>Actions: Read and write</b> 权限的
       <a id="lnk-pat" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Personal Access Token</a>，
       且<b>仅仓库所有者可触发</b>（工作流在服务端强制校验）。
@@ -122,18 +128,18 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin:34px 0 44px;
     </p>
     <div class="row">
       <div class="field grow">
-        <label>仓库 / Repository（owner/name，Fork 后自动识别为你自己的仓库）</label>
+        <label data-en="Repository (owner/name — auto-detected as your own after forking)">仓库 / Repository（owner/name，Fork 后自动识别为你自己的仓库）</label>
         <input type="text" id="inp-repo" placeholder="owner/repo" spellcheck="false">
       </div>
       <div class="field grow">
-        <label>Personal Access Token（只保存在你的浏览器本地）</label>
-        <input type="password" id="inp-token" placeholder="github_pat_… 或 ghp_…" spellcheck="false" autocomplete="off">
+        <label data-en="Personal Access Token (stored only in your browser)">Personal Access Token（只保存在你的浏览器本地）</label>
+        <input type="password" id="inp-token" placeholder="github_pat_… 或 ghp_…" data-en-ph="github_pat_… or ghp_…" spellcheck="false" autocomplete="off">
       </div>
     </div>
     <div class="row">
-      <label class="check"><input type="checkbox" id="chk-save"> 在此浏览器记住 Token</label>
-      <button class="btn primary" id="btn-connect">校验并连接</button>
-      <button class="btn ghost" id="btn-forget">清除本地 Token</button>
+      <label class="check"><input type="checkbox" id="chk-save"> <span data-en="Remember token in this browser">在此浏览器记住 Token</span></label>
+      <button class="btn primary" id="btn-connect" data-en="Validate &amp; connect">校验并连接</button>
+      <button class="btn ghost" id="btn-forget" data-en="Clear saved token">清除本地 Token</button>
     </div>
     <div id="conn-status" class="status"></div>
     <div id="perm-banner" class="banner hidden"></div>
@@ -141,17 +147,17 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin:34px 0 44px;
 
   <!-- 2 参数 -->
   <section class="card">
-    <h2>② 构建参数 <small>Build config</small></h2>
+    <h2 data-en="② Build options">② 构建参数 <small>Build config</small></h2>
     <div class="grid4">
       <div class="field">
-        <label>FriendlyWrt 版本 / Version</label>
+        <label data-en="FriendlyWrt version">FriendlyWrt 版本 / Version</label>
         <select id="sel-version">
-          <option value="25.12" selected>25.12（基于 OpenWrt 25.12，推荐）</option>
-          <option value="24.10">24.10（基于 OpenWrt 24.10）</option>
+          <option value="25.12" selected data-en="25.12 (OpenWrt 25.12 based, recommended)">25.12（基于 OpenWrt 25.12，推荐）</option>
+          <option value="24.10" data-en="24.10 (OpenWrt 24.10 based)">24.10（基于 OpenWrt 24.10）</option>
         </select>
       </div>
       <div class="field">
-        <label>主控芯片 / 机型 / SoC</label>
+        <label data-en="SoC / device">主控芯片 / 机型 / SoC</label>
         <select id="sel-cpu">
           <option value="rk3399" selected>rk3399 · NanoPi R4S / R4SE / NanoPC-T4</option>
           <option value="rk3328">rk3328 · NanoPi R2S / R2C</option>
@@ -160,33 +166,33 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin:34px 0 44px;
           <option value="rk3568">rk3568 · NanoPi R5S / R5C</option>
           <option value="rk3576">rk3576 · NanoPi R76S / M5</option>
           <option value="rk3588">rk3588 · NanoPi R6S / R6C / NanoPC-T6 / M6</option>
-          <option value="all">all · 全部机型一次构建（耗时成倍增加）</option>
+          <option value="all" data-en="all · build all devices at once (much slower)">all · 全部机型一次构建（耗时成倍增加）</option>
         </select>
       </div>
       <div class="field">
-        <label>集成 Docker / Include Docker</label>
+        <label data-en="Include Docker">集成 Docker / Include Docker</label>
         <select id="sel-docker">
-          <option value="no" selected>不集成（体积小、编译快）</option>
-          <option value="yes">集成 Docker（体积与耗时明显增加）</option>
+          <option value="no" selected data-en="No (smaller image, faster build)">不集成（体积小、编译快）</option>
+          <option value="yes" data-en="Yes (much larger and slower)">集成 Docker（体积与耗时明显增加）</option>
         </select>
       </div>
       <div class="field">
-        <label>管理后台 IP / Admin IP（留空 = 官方默认 192.168.2.1）</label>
-        <input type="text" id="inp-lanip" placeholder="如 192.168.50.1" spellcheck="false">
+        <label data-en="Admin IP (empty = official default 192.168.2.1)">管理后台 IP / Admin IP（留空 = 官方默认 192.168.2.1）</label>
+        <input type="text" id="inp-lanip" placeholder="如 192.168.50.1" data-en-ph="e.g. 192.168.50.1" spellcheck="false">
       </div>
     </div>
   </section>
 
   <!-- 3 剔除预装 -->
   <section class="card">
-    <h2>③ 剔除官方预装插件 <small>Remove preinstalled</small></h2>
-    <p class="hint">
+    <h2 data-en="③ Remove preinstalled plugins">③ 剔除官方预装插件 <small>Remove preinstalled</small></h2>
+    <p class="hint" data-en="Check the preinstalled plugin groups to <b>remove entirely</b> (luci frontend + backend daemons + Chinese language pack). The list is read live from <code>scripts/package_groups.txt</code> in the repo — add a new group alias there and this page picks it up automatically.">
       勾选要<b>整组剔除</b>的官方预装插件（luci 前端 + 后端守护进程 + 中文语言包），
       列表实时读取仓库中的 <code>scripts/package_groups.txt</code>，在该文件里新增组别名后本页会自动同步。
     </p>
     <div class="row" style="margin-top:6px">
-      <button class="btn mini ghost" id="btn-rm-all">全选（最纯净模式）</button>
-      <button class="btn mini ghost" id="btn-rm-none">清空选择</button>
+      <button class="btn mini ghost" id="btn-rm-all" data-en="Select all (purest build)">全选（最纯净模式）</button>
+      <button class="btn mini ghost" id="btn-rm-none" data-en="Clear">清空选择</button>
       <span class="hint" style="margin:0" id="rm-count"></span>
     </div>
     <div id="grid-remove" class="chips"></div>
@@ -194,48 +200,53 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;margin:34px 0 44px;
 
   <!-- 4 追加插件 -->
   <section class="card">
-    <h2>④ 追加知名插件 <small>Add plugins</small></h2>
-    <p class="hint">精选 FriendlyWrt <b>官方源码内</b>的知名插件，勾选即集成进固件。若插件在所选版本的源中不存在，构建日志会提示 <code>[WARN]</code> 并跳过，不影响编译。</p>
+    <h2 data-en="④ Add well-known plugins">④ 追加知名插件 <small>Add plugins</small></h2>
+    <p class="hint" data-en="Curated popular plugins from the <b>official FriendlyWrt source</b> — check to include them in the firmware. If a plugin is missing in the selected version's feeds, the build log shows a <code>[WARN]</code> and skips it without breaking the build.">
+      精选 FriendlyWrt <b>官方源码内</b>的知名插件，勾选即集成进固件。若插件在所选版本的源中不存在，构建日志会提示 <code>[WARN]</code> 并跳过，不影响编译。
+    </p>
     <div id="grid-add"></div>
-    <p class="warnline">⚠️ OpenClash、PassWall、SSR-Plus 等第三方插件不在官方源码内，无法通过本页添加；更多官方源插件可在第 ⑤ 步自定义清单中直接填写包名。</p>
+    <p class="warnline" data-en="⚠️ Third-party plugins (OpenClash, PassWall, SSR-Plus, …) are not in the official source and cannot be added here; more official-feed plugins can be typed directly in step ⑤.">
+      ⚠️ OpenClash、PassWall、SSR-Plus 等第三方插件不在官方源码内，无法通过本页添加；更多官方源插件可在第 ⑤ 步自定义清单中直接填写包名。</p>
   </section>
 
   <!-- 5 自定义 -->
   <section class="card">
-    <h2>⑤ 自定义清单（可选） <small>Raw packages</small></h2>
-    <p class="hint">
+    <h2 data-en="⑤ Raw package list (optional)">⑤ 自定义清单（可选） <small>Raw packages</small></h2>
+    <p class="hint" data-en="Type the package add/remove list directly, separated by spaces or commas — same syntax as the workflow <code>packages</code> input: <code>-group</code> / <code>-package</code> removes, <code>+package</code> adds (no prefix = add). Combined with the checkboxes above.">
       直接填写软件包增删清单，空格或逗号分隔，语法与工作流 <code>packages</code> 参数完全一致：
       <code>-组别名</code> / <code>-包名</code> 剔除，<code>+包名</code> 追加（无前缀视为追加），可与上方勾选叠加。
     </p>
-    <textarea id="inp-extra" rows="2" placeholder="例：-adblock +luci-theme-argon +wget-ssl" spellcheck="false"></textarea>
+    <textarea id="inp-extra" rows="2" placeholder="例：-adblock +luci-theme-argon +wget-ssl" data-en-ph="e.g. -adblock +luci-theme-argon +wget-ssl" spellcheck="false"></textarea>
   </section>
 
   <!-- 6 触发 -->
   <section class="card">
-    <h2>⑥ 触发编译 <small>Trigger build</small></h2>
+    <h2 data-en="⑥ Trigger build">⑥ 触发编译 <small>Trigger build</small></h2>
     <div class="preview">
-      <span class="plabel">packages 清单预览</span>
+      <span class="plabel" data-en="packages preview">packages 清单预览</span>
       <code id="pkg-preview"></code>
       <button class="btn mini ghost" id="btn-copy">复制</button>
     </div>
     <div class="row">
       <button class="btn primary big" id="btn-trigger">🚀 触发编译</button>
-      <span class="hint" style="margin:0">公开仓库 Actions 免费；单机型约 4~6 小时，固件自动上传到 Releases</span>
+      <span class="hint" style="margin:0" data-en="Actions is free for public repos; one device takes ~4–6 h, firmware lands in Releases automatically">公开仓库 Actions 免费；单机型约 4~6 小时，固件自动上传到 Releases</span>
     </div>
     <div id="trigger-result" class="status"></div>
   </section>
 
   <!-- 最新构建 -->
   <section class="card hidden" id="card-latest">
-    <h2>最新构建 <small>Latest run</small>
-      <button class="btn mini ghost" id="btn-refresh">刷新状态</button>
+    <h2><span data-en="Latest run">最新构建</span> <small>Latest run</small>
+      <button class="btn mini ghost" id="btn-refresh" data-en="Refresh">刷新状态</button>
     </h2>
-    <div id="latest-body" class="status"><span class="meta">连接后显示最近一次构建状态。</span></div>
+    <div id="latest-body" class="status"><span class="meta" data-en="Connect to see the latest build status.">连接后显示最近一次构建状态。</span></div>
   </section>
 
   <footer>
-    <p>🔐 Token 仅保存在你的浏览器 localStorage 中，只用于调用 GitHub 官方 API（api.github.com）；本页面为纯静态站点，部署在 GitHub Pages 上，没有任何后端。</p>
-    <p>流水线参考 friendlyarm/Actions-FriendlyWrt · 交互参考 wukongdaily/ImmortalWrt-ImageBuilder · 页面源码 <a id="lnk-src" href="#" target="_blank" rel="noopener">docs/index.html</a></p>
+    <p data-en="🔐 The token is stored only in your browser's localStorage and sent only to the official GitHub API (api.github.com). This page is a static site hosted on GitHub Pages with no backend.">
+      🔐 Token 仅保存在你的浏览器 localStorage 中，只用于调用 GitHub 官方 API（api.github.com）；本页面为纯静态站点，部署在 GitHub Pages 上，没有任何后端。</p>
+    <p data-en="Pipeline based on friendlyarm/Actions-FriendlyWrt · UX inspired by wukongdaily/ImmortalWrt-ImageBuilder · page source: <a id='lnk-src'>docs/index.html</a>">
+      流水线参考 friendlyarm/Actions-FriendlyWrt · 交互参考 wukongdaily/ImmortalWrt-ImageBuilder · 页面源码 <a id="lnk-src" href="#" target="_blank" rel="noopener">docs/index.html</a></p>
   </footer>
 
 </main>
@@ -250,6 +261,7 @@ const API = 'https://api.github.com';
 const WORKFLOW_FILE = 'build.yml';
 const DEFAULT_REPO = 'FeamCoco/AutoBuildFriendlyWrt';
 const LS_TOKEN = 'abfw.token';
+const LS_LANG = 'abfw.lang';
 
 // scripts/package_groups.txt 的离线快照，仅在实时拉取失败（如断网/私有仓库）时兜底
 const FALLBACK_GROUPS = [
@@ -271,37 +283,154 @@ const FALLBACK_GROUPS = [
   ['extra_themes', '多余主题(保留 Argon)','luci-theme-material luci-theme-bootstrap luci-theme-openwrt-2020'],
 ];
 
-// 精选官方源内知名插件（勾选后按 +包名 追加）
+// 组别名的英文描述（package_groups.txt 内为中文，页面按需翻译；未收录的组回退原文）
+const GROUP_EN = {
+  adblock:      'Ad filtering',
+  aria2:        'Downloader',
+  minidlna:     'DLNA media server',
+  samba4:       'Samba file sharing',
+  smartdns:     'SmartDNS DNS optimizer',
+  sqm:          'SQM queueing QoS',
+  statistics:   'Status charts',
+  nlbwmon:      'Traffic stats',
+  ddns:         'Dynamic DNS',
+  upnp:         'UPnP',
+  ttyd:         'Web terminal',
+  watchcat:     'Scheduled reboot',
+  hd_idle:      'Disk standby',
+  diskman:      'Disk manager + SMART',
+  misc_tools:   'Misc tools',
+  extra_themes: 'Extra themes (keep Argon)',
+};
+
+// 精选官方源内知名插件（勾选后按 +包名 追加），描述：[中文, English]
 const POPULAR = [
-  { cat: '组网 VPN / VPN & Mesh', items: [
-    ['luci-app-zerotier',      'ZeroTier 异地组网'],
-    ['luci-app-tailscale',     'Tailscale 异地组网'],
-    ['luci-proto-wireguard',   'WireGuard VPN 协议支持'],
+  { cat: ['组网 VPN / VPN & Mesh', 'Networking & VPN'], items: [
+    ['luci-app-zerotier',       'ZeroTier 异地组网',                 'ZeroTier mesh VPN'],
+    ['luci-app-tailscale',      'Tailscale 异地组网',                'Tailscale mesh VPN'],
+    ['luci-proto-wireguard',    'WireGuard VPN 协议支持',            'WireGuard VPN support'],
   ]},
-  { cat: '代理与 DNS / Proxy & DNS', items: [
-    ['luci-app-homeproxy',     'HomeProxy（sing-box 内核）'],
-    ['luci-app-adguardhome',   'AdGuard Home 全屋去广告'],
-    ['luci-app-https-dns-proxy','DoH 加密 DNS'],
-    ['luci-app-banip',         'banIP 恶意流量拦截'],
+  { cat: ['代理与 DNS / Proxy & DNS', 'Proxy & DNS'], items: [
+    ['luci-app-homeproxy',      'HomeProxy（sing-box 内核）',        'HomeProxy (sing-box based)'],
+    ['luci-app-adguardhome',    'AdGuard Home 全屋去广告',           'AdGuard Home network-wide ad blocking'],
+    ['luci-app-https-dns-proxy','DoH 加密 DNS',                      'DoH encrypted DNS'],
+    ['luci-app-banip',          'banIP 恶意流量拦截',                'banIP malicious-traffic blocker'],
   ]},
-  { cat: '内网穿透 / Remote Access', items: [
-    ['luci-app-frpc',          'FRP 内网穿透客户端'],
-    ['luci-app-frps',          'FRP 内网穿透服务端'],
+  { cat: ['内网穿透 / Remote Access', 'Remote Access'], items: [
+    ['luci-app-frpc',           'FRP 内网穿透客户端',                'FRP tunneling client'],
+    ['luci-app-frps',           'FRP 内网穿透服务端',                'FRP tunneling server'],
   ]},
-  { cat: '实用工具 / Utilities', items: [
-    ['luci-app-wol',           '网络唤醒 WOL'],
-    ['luci-app-vnstat',        'vnstat 流量监控'],
-    ['luci-app-mwan3',         '多 WAN 负载均衡 / 故障切换'],
-    ['luci-app-ksmbd',         'KSMBD 轻量文件共享（Samba4 替代）'],
-    ['luci-app-p910nd',        'USB 打印服务器'],
-    ['luci-app-rclone',        'Rclone 网盘挂载'],
-    ['luci-app-travelmate',    'Travelmate WiFi 自动中继'],
+  { cat: ['实用工具 / Utilities', 'Utilities'], items: [
+    ['luci-app-wol',            '网络唤醒 WOL',                      'Wake-on-LAN'],
+    ['luci-app-vnstat',         'vnstat 流量监控',                   'vnstat traffic monitor'],
+    ['luci-app-mwan3',          '多 WAN 负载均衡 / 故障切换',        'Multi-WAN load balancing / failover'],
+    ['luci-app-ksmbd',          'KSMBD 轻量文件共享（Samba4 替代）', 'KSMBD lightweight file sharing (Samba4 alternative)'],
+    ['luci-app-p910nd',         'USB 打印服务器',                    'USB print server'],
+    ['luci-app-rclone',         'Rclone 网盘挂载',                   'Rclone cloud storage mount'],
+    ['luci-app-travelmate',     'Travelmate WiFi 自动中继',          'Travelmate Wi-Fi travel router'],
   ]},
 ];
+
+/* ================= 文案（[中文, English]） ================= */
+
+const STR = {
+  // 连接
+  connect_no_token: [
+    "❌ 请先填写 Token。生成步骤：GitHub 头像 → Settings → Developer settings → Fine-grained tokens，仅勾选你仓库的 <b>Actions: Read and write</b> 权限，详细教程见 README。",
+    "❌ Please add a token first. Create one via GitHub avatar → Settings → Developer settings → Fine-grained tokens, granting only <b>Actions: Read and write</b> on your repo — see the README tutorial."],
+  connect_validating: [
+    "<span class=\"spin\">⏳</span> 正在校验 Token 与仓库权限…",
+    "<span class=\"spin\">⏳</span> Validating token and repo permission…"],
+  connect_fail: [
+    "❌ 连接失败：{hint}。请检查 Token 是否具有 Actions: Read and write 权限、仓库是否填写正确。",
+    "❌ Connection failed: {hint}. Check that the token has Actions: Read and write and the repo name is correct."],
+  h_401: ["Token 无效或已过期（401）", "token invalid or expired (401)"],
+  h_403: ["权限不足（403）", "insufficient permission (403)"],
+  h_404: ["仓库不存在或 Token 无权访问（404）", "repo not found or token has no access (404)"],
+  conn_ok: [
+    "✅ 已连接 <b>@{login}</b> · 仓库 <b>{repo}</b> · 默认分支 <code>{branch}</code> · 你的权限：<b>{perm}</b>",
+    "✅ Connected as <b>@{login}</b> · repo <b>{repo}</b> · default branch <code>{branch}</code> · your permission: <b>{perm}</b>"],
+  conn_anon: [
+    "已识别仓库 <b>{repo}</b> · 默认分支 <code>{branch}</code> · 未登录（填写 Token 后可触发编译）",
+    "Detected repo <b>{repo}</b> · default branch <code>{branch}</code> · not signed in (add a token to trigger builds)"],
+  banner_no_perm: [
+    "⛔ 账号 <b>@{login}</b> 对 <b>{repo}</b> 没有写入权限，无法触发编译。 本仓库仅所有者 <b>@{owner}</b> 可触发 —— 请 <a href=\"{fork}\" target=\"_blank\" rel=\"noopener\">Fork 本仓库</a>，再按 README 教程开启你自己的页面（你对你 Fork 的仓库拥有全部权限）。",
+    "⛔ Account <b>@{login}</b> has no write access to <b>{repo}</b> and cannot trigger builds. Only the owner <b>@{owner}</b> can trigger this repo — please <a href=\"{fork}\" target=\"_blank\" rel=\"noopener\">fork it</a> and enable your own page per the README tutorial (you have full permission on your own fork)."],
+  banner_collab: [
+    "⚠️ 你是协作者，但工作流仅允许<b>仓库所有者</b>触发，即使发起也会被服务端拒绝。",
+    "⚠️ You are a collaborator, but the workflow only allows the <b>repository owner</b> to trigger — attempts are rejected server-side."],
+  init_fail: [
+    "⚠️ 无法读取仓库 {repo}（{msg}）。插件剔除列表使用内置快照；若是私有仓库，请填写 Token 后重试。",
+    "⚠️ Cannot read repo {repo} ({msg}). Using the built-in snapshot for the removal list; for a private repo, add a token and retry."],
+  forget_done: ["已清除本地 Token。", "Cleared saved token."],
+  perm_admin: ["admin（所有者）", "admin (owner)"],
+  perm_maintain: ["maintain", "maintain"],
+  perm_write: ["write（协作者）", "write (collaborator)"],
+  perm_triage: ["triage", "triage"],
+  perm_read: ["read（无触发权限）", "read (cannot trigger)"],
+  perm_unknown: ["未知", "unknown"],
+  // 触发
+  trig_need_token: [
+    "⚠️ 请先在第 ① 步使用<b>仓库所有者</b>的 Token 完成连接。",
+    "⚠️ Please connect first in step ① using the <b>repository owner's</b> token."],
+  trig_bad_ip: [
+    "❌ 管理 IP 格式不正确，应为类似 192.168.50.1 的 IPv4 地址，或留空使用默认。",
+    "❌ Invalid admin IP — use an IPv4 address like 192.168.50.1, or leave empty for the default."],
+  trig_calling: [
+    "<span class=\"spin\">⏳</span> 正在调用 GitHub API…",
+    "<span class=\"spin\">⏳</span> Calling the GitHub API…"],
+  trig_ok_locating: [
+    "✅ 触发成功！正在定位构建任务…",
+    "✅ Triggered! Locating the build run…"],
+  trig_ok_running: [
+    "✅ 构建已开始，页面会自动刷新状态；也点击上方链接查看实时日志。",
+    "✅ Build started — status refreshes automatically; click the link above for live logs."],
+  trig_ok_norun: [
+    "✅ 触发成功！列表刷新稍有延迟，请到 Actions 页面查看进度。",
+    "✅ Triggered! The run list updates with a short delay — check the Actions page."],
+  trig_403: [
+    "⛔ 无权限触发（403）：只有<b>仓库所有者</b>可触发编译。他人请 Fork 本仓库使用自己的页面。",
+    "⛔ Not allowed (403): only the <b>repository owner</b> can trigger builds. Others please fork this repo and use their own page."],
+  trig_404: [
+    "❌ 未找到仓库或工作流 {file}（404），请检查仓库名与 Actions 是否已启用。",
+    "❌ Repo or workflow {file} not found (404) — check the repo name and that Actions is enabled."],
+  trig_422: [
+    "❌ 参数被拒绝（422）：{msg}",
+    "❌ Rejected (422): {msg}"],
+  trig_422_default: [
+    "inputs 与工作流定义不匹配",
+    "inputs do not match the workflow definition"],
+  trig_fail: [
+    "❌ 触发失败（HTTP {status}）：{msg}",
+    "❌ Trigger failed (HTTP {status}): {msg}"],
+  trig_net: [
+    "❌ 网络错误：{msg}（请检查网络或代理后重试）",
+    "❌ Network error: {msg} (check your network or proxy and retry)"],
+  trigger_btn: ["🚀 触发编译", "🚀 Trigger build"],
+  trigger_busy: ["⏳ 正在触发…", "⏳ Triggering…"],
+  copy: ["复制", "Copy"],
+  copied: ["已复制", "Copied"],
+  // 勾选与预览
+  rm_count_n: ["已勾选 {n} 组", "{n} group(s) selected"],
+  rm_count_none: ["未勾选任何剔除项", "Nothing selected"],
+  preview_empty: [
+    "（空 —— 保留全部官方预装，不追加插件）",
+    "(empty — keep all preinstalled plugins, add nothing)"],
+  chip_title: ["剔除：{pkgs}", "Removes: {pkgs}"],
+  // 最新构建
+  latest_querying: ["查询中…", "Querying…"],
+  latest_empty: ["本仓库还没有任何构建记录。", "This repo has no builds yet."],
+  latest_fail: ["查询失败：{msg}", "Query failed: {msg}"],
+  run_success: ["✅ 构建成功", "✅ Build succeeded"],
+  run_meta: [
+    "<div class=\"meta\">开始时间：{time} · 固件完成后见 <a href=\"{url}\" target=\"_blank\" rel=\"noopener\">Releases</a></div>",
+    "<div class=\"meta\">Started: {time} · firmware appears in <a href=\"{url}\" target=\"_blank\" rel=\"noopener\">Releases</a> when the build finishes</div>"],
+};
 
 /* ================= 状态 ================= */
 
 const state = {
+  lang: 'zh',        // 'zh' | 'en'
   token: '',
   user: null,        // { login }
   repoFull: '',      // 'owner/name'
@@ -312,19 +441,39 @@ const state = {
   packages: '',
   runTimer: null,
   lastRun: null,
+  latestEmpty: false,
+  lastMsg: null,     // { sel, kind, key, params }
+  i18n: [],          // [{ el, zh, en }]
+  i18nPh: [],        // [{ el, zh, en }]
 };
 
 /* ================= 工具函数 ================= */
 
 const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const langIdx = () => state.lang === 'en' ? 1 : 0;
+
+// 取文案并做 {参数} 替换（参数应已按上下文 esc 处理）
+function t(key, params) {
+  const pair = STR[key];
+  let s = (pair ? pair[langIdx()] : key) || key;
+  if (params) for (const k in params) s = s.split('{' + k + '}').join(params[k]);
+  return s;
+}
 
 function showMsg(sel, kind, html) {
   const el = $(sel);
   el.className = 'status' + (kind ? ' ' + kind : '');
   el.innerHTML = html;
+}
+
+// 带文案键的 showMsg：记录最后一条，切换语言时能重新渲染
+function showMsgT(sel, kind, key, params) {
+  state.lastMsg = { sel, kind, key, params };
+  showMsg(sel, kind, t(key, params));
 }
 
 // 从 *.github.io/{repo}/… 自动识别 owner/repo，使 Fork 无需改动即可使用
@@ -366,12 +515,53 @@ function canPush() {
 }
 function permLabel() {
   const p = state.repoInfo && state.repoInfo.permissions;
-  if (!p) return '未知';
-  if (p.admin) return 'admin（所有者）';
-  if (p.maintain) return 'maintain';
-  if (p.push) return 'write（协作者）';
-  if (p.triage) return 'triage';
-  return 'read（无触发权限）';
+  if (!p) return t('perm_unknown');
+  if (p.admin) return t('perm_admin');
+  if (p.maintain) return t('perm_maintain');
+  if (p.push) return t('perm_write');
+  if (p.triage) return t('perm_triage');
+  return t('perm_read');
+}
+
+/* ================= 多语言切换 ================= */
+
+function collectI18n() {
+  state.i18n = [...$$('[data-en]')].map(el => ({
+    el, zh: el.innerHTML, en: el.getAttribute('data-en'),
+  }));
+  state.i18nPh = [...$$('[data-en-ph]')].map(el => ({
+    el, zh: el.getAttribute('placeholder'), en: el.getAttribute('data-en-ph'),
+  }));
+}
+
+function applyStaticLang() {
+  for (const { el, zh, en } of state.i18n) el.innerHTML = state.lang === 'en' ? en : zh;
+  for (const { el, zh, en } of state.i18nPh) {
+    el.setAttribute('placeholder', state.lang === 'en' ? en : zh);
+  }
+  document.documentElement.lang = state.lang === 'en' ? 'en' : 'zh-CN';
+  $$('.lang button').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('data-setlang') === state.lang));
+}
+
+// 切换语言：静态文案 + 所有动态区域全部按当前语言重绘（保留已勾选状态）
+function setLang(lang) {
+  if (lang === state.lang) return;
+  state.lang = lang;
+  try { localStorage.setItem(LS_LANG, lang); } catch (e) { /* ignore */ }
+  applyStaticLang();
+  renderLinks();
+  if (state.groups) renderRemove();
+  renderAdd();
+  updateRmCount();
+  updatePreview();
+  renderConn();
+  if (state.lastRun) showRunCard(state.lastRun);
+  else if (state.latestEmpty)
+    $('#latest-body').innerHTML = '<span class="meta">' + esc(t('latest_empty')) + '</span>';
+  if (state.lastMsg) showMsg(state.lastMsg.sel, state.lastMsg.kind, t(state.lastMsg.key, state.lastMsg.params));
+  $('#btn-trigger').textContent = t('trigger_btn');
+  $('#btn-copy').textContent = t('copy');
 }
 
 /* ================= 渲染 ================= */
@@ -390,28 +580,39 @@ function renderLinks() {
 }
 
 function renderRemove() {
-  const grid = $('#grid-remove');
-  grid.innerHTML = state.groups.map(([key, desc, pkgs]) => `
+  const en = state.lang === 'en';
+  $('#grid-remove').innerHTML = state.groups.map(([key, desc, pkgs]) => {
+    const d = en ? (GROUP_EN[key] || desc) : desc;
+    return `
     <label class="chip"><input type="checkbox" data-key="${esc(key)}">
-      <span title="剔除：${esc(pkgs)}"><b>-${esc(key)}</b><i>${esc(desc)}</i><em>${esc(pkgs)}</em></span>
-    </label>`).join('');
+      <span title="${esc(t('chip_title', { pkgs }))}"><b>-${esc(key)}</b><i>${esc(d)}</i><em>${esc(pkgs)}</em></span>
+    </label>`;
+  }).join('');
+  // 恢复已勾选状态（语言切换会重建 DOM）
+  $$('#grid-remove input').forEach(i => {
+    i.checked = state.removed.has(i.getAttribute('data-key'));
+  });
   updateRmCount();
 }
 
 function renderAdd() {
+  const en = state.lang === 'en';
   $('#grid-add').innerHTML = POPULAR.map(g => `
-    <div class="cat"><h3>${esc(g.cat)}</h3>
-      <div class="chips">${g.items.map(([pkg, desc]) => `
+    <div class="cat"><h3>${esc(en ? g.cat[1] : g.cat[0])}</h3>
+      <div class="chips">${g.items.map(([pkg, zh, enDesc]) => `
         <label class="chip"><input type="checkbox" data-pkg="${esc(pkg)}">
-          <span><b>+${esc(pkg)}</b><i>${esc(desc)}</i></span>
+          <span><b>+${esc(pkg)}</b><i>${esc(en ? enDesc : zh)}</i></span>
         </label>`).join('')}
       </div>
     </div>`).join('');
+  $$('#grid-add input').forEach(i => {
+    i.checked = state.added.has(i.getAttribute('data-pkg'));
+  });
 }
 
 function updateRmCount() {
   const n = state.removed.size;
-  $('#rm-count').textContent = n ? `已勾选 ${n} 组` : '未勾选任何剔除项';
+  $('#rm-count').textContent = n ? t('rm_count_n', { n }) : t('rm_count_none');
 }
 
 function updatePreview() {
@@ -420,10 +621,10 @@ function updatePreview() {
   state.added.forEach(p => parts.push('+' + p));
   const extra = $('#inp-extra').value.trim();
   if (extra) {
-    extra.replace(/[,，]/g, ' ').split(/\s+/).filter(Boolean).forEach(t => parts.push(t));
+    extra.replace(/[,，]/g, ' ').split(/\s+/).filter(Boolean).forEach(tok => parts.push(tok));
   }
   state.packages = parts.join(' ');
-  $('#pkg-preview').textContent = state.packages || '（空 —— 保留全部官方预装，不追加插件）';
+  $('#pkg-preview').textContent = state.packages || t('preview_empty');
 }
 
 function renderConn() {
@@ -431,22 +632,26 @@ function renderConn() {
   const info = state.repoInfo;
   let html;
   if (state.user) {
-    html = `✅ 已连接 <b>@${esc(state.user.login)}</b> · 仓库 <b>${esc(state.repoFull)}</b>` +
-      ` · 默认分支 <code>${esc(info.default_branch)}</code> · 你的权限：<b>${permLabel()}</b>`;
+    html = t('conn_ok', {
+      login: esc(state.user.login), repo: esc(state.repoFull),
+      branch: esc(info.default_branch), perm: permLabel(),
+    });
   } else {
-    html = `<span class="meta">已识别仓库 <b>${esc(state.repoFull)}</b> · 默认分支 <code>${esc(info.default_branch)}</code> · 未登录（填写 Token 后可触发编译）</span>`;
+    html = t('conn_anon', { repo: esc(state.repoFull), branch: esc(info.default_branch) });
   }
   showMsg('#conn-status', '', html);
 
   const banner = $('#perm-banner');
   if (state.user && !canPush()) {
     banner.classList.remove('hidden');
-    banner.innerHTML = `⛔ 账号 <b>@${esc(state.user.login)}</b> 对 <b>${esc(state.repoFull)}</b> 没有写入权限，无法触发编译。` +
-      ` 本仓库仅所有者 <b>@${esc(info.owner.login)}</b> 可触发 —— 请 <a href="${esc('https://github.com/' + state.repoFull + '/fork')}" target="_blank" rel="noopener">Fork 本仓库</a>，` +
-      `再按 README 教程开启你自己的页面（你对你 Fork 的仓库拥有全部权限）。`;
+    banner.innerHTML = t('banner_no_perm', {
+      login: esc(state.user.login), repo: esc(state.repoFull),
+      owner: esc(info.owner.login),
+      fork: esc('https://github.com/' + state.repoFull + '/fork'),
+    });
   } else if (state.user && !isOwner()) {
     banner.classList.remove('hidden');
-    banner.innerHTML = `⚠️ 你是协作者，但工作流仅允许<b>仓库所有者</b>触发，即使发起也会被服务端拒绝。`;
+    banner.innerHTML = t('banner_collab');
   } else {
     banner.classList.add('hidden');
   }
@@ -455,14 +660,15 @@ function renderConn() {
 
 function showRunCard(run) {
   state.lastRun = run;
+  state.latestEmpty = false;
   $('#card-latest').classList.remove('hidden');
   const icon = run.status !== 'completed'
     ? `<span class="spin">⏳</span> ${esc(run.status)}`
-    : (run.conclusion === 'success' ? '✅ 构建成功' : `❌ ${esc(run.conclusion)}`);
+    : (run.conclusion === 'success' ? t('run_success') : `❌ ${esc(run.conclusion || '')}`);
   const created = run.created_at ? new Date(run.created_at).toLocaleString() : '';
   $('#latest-body').innerHTML =
     `<div>${icon} · <a href="${esc(run.html_url)}" target="_blank" rel="noopener">Run #${run.run_number} ${esc(run.display_title || '')}</a></div>` +
-    `<div class="meta">开始时间：${esc(created)} · 固件完成后见 <a href="${esc('https://github.com/' + state.repoFull + '/releases')}" target="_blank" rel="noopener">Releases</a></div>`;
+    t('run_meta', { time: esc(created), url: esc('https://github.com/' + state.repoFull + '/releases') });
 }
 
 /* ================= 数据加载 ================= */
@@ -503,8 +709,8 @@ async function initRepo() {
   } catch (e) {
     state.groups = state.groups || FALLBACK_GROUPS;
     renderRemove();
-    showMsg('#conn-status', 'warn',
-      `⚠️ 无法读取仓库 ${esc(state.repoFull)}（${esc(e.message)}）。插件剔除列表使用内置快照；若是私有仓库，请填写 Token 后重试。`);
+    showMsgT('#conn-status', 'warn', 'init_fail',
+      { repo: esc(state.repoFull), msg: esc(e.message) });
   }
 }
 
@@ -513,7 +719,7 @@ async function initRepo() {
 async function connect() {
   const token = $('#inp-token').value.trim();
   if (!token) {
-    showMsg('#conn-status', 'err', '❌ 请先填写 Token。生成步骤：GitHub 头像 → Settings → Developer settings → Fine-grained tokens，仅勾选你仓库的 <b>Actions: Read and write</b> 权限，详细教程见 README。');
+    showMsgT('#conn-status', 'err', 'connect_no_token');
     return;
   }
   state.token = token;
@@ -522,17 +728,17 @@ async function connect() {
   } else {
     try { localStorage.removeItem(LS_TOKEN); } catch (e) { /* ignore */ }
   }
-  showMsg('#conn-status', '', '<span class="spin">⏳</span> 正在校验 Token 与仓库权限…');
+  showMsgT('#conn-status', '', 'connect_validating');
   try {
     state.user = await api('/user');
     await initRepo(); // 以当前 Token 重新识别仓库并刷新权限展示
     loadLatestRun();
   } catch (e) {
     state.user = null;
-    const hint = e.status === 401 ? 'Token 无效或已过期（401）' :
-                 e.status === 403 ? '权限不足（403）' :
-                 e.status === 404 ? '仓库不存在或 Token 无权访问（404）' : esc(e.message);
-    showMsg('#conn-status', 'err', `❌ 连接失败：${hint}。请检查 Token 是否具有 Actions: Read and write 权限、仓库是否填写正确。`);
+    const hint = e.status === 401 ? t('h_401') :
+                 e.status === 403 ? t('h_403') :
+                 e.status === 404 ? t('h_404') : esc(e.message);
+    showMsgT('#conn-status', 'err', 'connect_fail', { hint });
   }
 }
 
@@ -544,19 +750,19 @@ function forget() {
   try { localStorage.removeItem(LS_TOKEN); } catch (e) { /* ignore */ }
   $('#btn-trigger').disabled = true;
   $('#perm-banner').classList.add('hidden');
-  showMsg('#conn-status', '', '<span class="meta">已清除本地 Token。</span>');
+  showMsgT('#conn-status', '', 'forget_done');
 }
 
 /* ================= 触发编译 ================= */
 
 async function trigger() {
   if (!state.token || !isOwner()) {
-    showMsg('#trigger-result', 'warn', '⚠️ 请先在第 ① 步使用<b>仓库所有者</b>的 Token 完成连接。');
+    showMsgT('#trigger-result', 'warn', 'trig_need_token');
     return;
   }
   const lanip = $('#inp-lanip').value.trim();
   if (lanip && !/^\d{1,3}(\.\d{1,3}){3}$/.test(lanip)) {
-    showMsg('#trigger-result', 'err', '❌ 管理 IP 格式不正确，应为类似 192.168.50.1 的 IPv4 地址，或留空使用默认。');
+    showMsgT('#trigger-result', 'err', 'trig_bad_ip');
     return;
   }
   const inputs = {
@@ -568,8 +774,8 @@ async function trigger() {
   };
   const btn = $('#btn-trigger');
   btn.disabled = true;
-  btn.textContent = '⏳ 正在触发…';
-  showMsg('#trigger-result', '', '<span class="spin">⏳</span> 正在调用 GitHub API…');
+  btn.textContent = t('trigger_busy');
+  showMsgT('#trigger-result', '', 'trig_calling');
   try {
     const resp = await fetch(`${API}/repos/${state.repoFull}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
       method: 'POST',
@@ -582,34 +788,35 @@ async function trigger() {
       body: JSON.stringify({ ref: (state.repoInfo && state.repoInfo.default_branch) || 'main', inputs }),
     });
     if (resp.status === 204) {
-      showMsg('#trigger-result', 'ok', '✅ 触发成功！正在定位构建任务…');
+      showMsgT('#trigger-result', 'ok', 'trig_ok_locating');
       const startedAt = Date.now();
       const run = await waitForRun(startedAt);
       if (run) {
         showRunCard(run);
-        showMsg('#trigger-result', 'ok', '✅ 构建已开始，页面会自动刷新状态；也点击上方链接查看实时日志。');
+        showMsgT('#trigger-result', 'ok', 'trig_ok_running');
         startPolling(run);
       } else {
-        showMsg('#trigger-result', 'ok', '✅ 触发成功！列表刷新稍有延迟，请到 Actions 页面查看进度。');
+        showMsgT('#trigger-result', 'ok', 'trig_ok_norun');
       }
     } else if (resp.status === 403) {
-      showMsg('#trigger-result', 'err', '⛔ 无权限触发（403）：只有<b>仓库所有者</b>可触发编译。他人请 Fork 本仓库使用自己的页面。');
+      showMsgT('#trigger-result', 'err', 'trig_403');
     } else if (resp.status === 404) {
-      showMsg('#trigger-result', 'err', `❌ 未找到仓库或工作流 ${esc(WORKFLOW_FILE)}（404），请检查仓库名与 Actions 是否已启用。`);
+      showMsgT('#trigger-result', 'err', 'trig_404', { file: esc(WORKFLOW_FILE) });
     } else if (resp.status === 422) {
       let msg = '';
       try { msg = (await resp.json()).message || ''; } catch (e) { /* ignore */ }
-      showMsg('#trigger-result', 'err', `❌ 参数被拒绝（422）：${esc(msg || 'inputs 与工作流定义不匹配')}`);
+      showMsgT('#trigger-result', 'err', 'trig_422',
+        { msg: esc(msg) || esc(t('trig_422_default')) });
     } else {
       let msg = '';
       try { msg = (await resp.json()).message || ''; } catch (e) { /* ignore */ }
-      showMsg('#trigger-result', 'err', `❌ 触发失败（HTTP ${resp.status}）：${esc(msg)}`);
+      showMsgT('#trigger-result', 'err', 'trig_fail', { status: resp.status, msg: esc(msg) });
     }
   } catch (e) {
-    showMsg('#trigger-result', 'err', `❌ 网络错误：${esc(e.message)}（请检查网络或代理后重试）`);
+    showMsgT('#trigger-result', 'err', 'trig_net', { msg: esc(e.message) });
   } finally {
     btn.disabled = !isOwner();
-    btn.textContent = '🚀 触发编译';
+    btn.textContent = t('trigger_btn');
   }
 }
 
@@ -645,45 +852,51 @@ function startPolling(run) {
 async function loadLatestRun() {
   if (!state.token) return;
   $('#card-latest').classList.remove('hidden');
-  $('#latest-body').innerHTML = '<span class="spin">⏳</span> 查询中…';
+  $('#latest-body').innerHTML = '<span class="spin">⏳</span> ' + esc(t('latest_querying'));
   try {
     const data = await api(`/repos/${state.repoFull}/actions/runs?per_page=1`);
     const run = data.workflow_runs && data.workflow_runs[0];
     if (run) { showRunCard(run); if (run.status !== 'completed') startPolling(run); }
-    else $('#latest-body').innerHTML = '<span class="meta">本仓库还没有任何构建记录。</span>';
+    else {
+      state.latestEmpty = true;
+      $('#latest-body').innerHTML = '<span class="meta">' + esc(t('latest_empty')) + '</span>';
+    }
   } catch (e) {
-    $('#latest-body').innerHTML = `<span class="meta">查询失败：${esc(e.message)}</span>`;
+    state.latestEmpty = true;
+    $('#latest-body').innerHTML = '<span class="meta">' + esc(t('latest_fail', { msg: esc(e.message) })) + '</span>';
   }
 }
 
 /* ================= 事件绑定与初始化 ================= */
 
 function bind() {
+  $$('.lang button').forEach(b =>
+    b.addEventListener('click', () => setLang(b.getAttribute('data-setlang'))));
   $('#btn-connect').addEventListener('click', connect);
   $('#btn-forget').addEventListener('click', forget);
   $('#btn-trigger').addEventListener('click', trigger);
   $('#btn-rm-all').addEventListener('click', () => {
     state.removed = new Set(state.groups.map(g => g[0]));
-    document.querySelectorAll('#grid-remove input').forEach(i => { i.checked = true; });
+    $$('#grid-remove input').forEach(i => { i.checked = true; });
     updateRmCount(); updatePreview();
   });
   $('#btn-rm-none').addEventListener('click', () => {
     state.removed.clear();
-    document.querySelectorAll('#grid-remove input').forEach(i => { i.checked = false; });
+    $$('#grid-remove input').forEach(i => { i.checked = false; });
     updateRmCount(); updatePreview();
   });
   $('#btn-copy').addEventListener('click', async () => {
     const txt = state.packages || '';
     try {
       await navigator.clipboard.writeText(txt);
-      $('#btn-copy').textContent = '已复制';
+      $('#btn-copy').textContent = t('copied');
     } catch (e) {
       const ta = document.createElement('textarea');
       ta.value = txt; document.body.appendChild(ta); ta.select();
       document.execCommand('copy'); ta.remove();
-      $('#btn-copy').textContent = '已复制';
+      $('#btn-copy').textContent = t('copied');
     }
-    setTimeout(() => { $('#btn-copy').textContent = '复制'; }, 1500);
+    setTimeout(() => { $('#btn-copy').textContent = t('copy'); }, 1500);
   });
   $('#btn-refresh').addEventListener('click', () => {
     if (state.lastRun) {
@@ -716,11 +929,17 @@ function bind() {
 }
 
 async function init() {
+  collectI18n();
+  try { state.lang = localStorage.getItem(LS_LANG) === 'en' ? 'en' : 'zh'; } catch (e) { /* ignore */ }
+  applyStaticLang();
   bind();
   $('#inp-repo').value = detectRepo();
   renderLinks();
   renderAdd();
   updatePreview();
+  $('#btn-trigger').textContent = t('trigger_btn');
+  $('#btn-copy').textContent = t('copy');
+  updateRmCount();
   let saved = '';
   try { saved = localStorage.getItem(LS_TOKEN) || ''; } catch (e) { /* ignore */ }
   if (saved) {
